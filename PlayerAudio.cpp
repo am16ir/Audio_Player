@@ -45,13 +45,33 @@ bool PlayerAudio::LoadFile(const juce::File& file) {
                 nullptr,
                 reader->sampleRate);
             transportSource.start();
+
+            if (logBox) {
+                logBox("File name: " + file.getFileName());
+
+                if (reader->metadataValues.getAllKeys() > 0) {
+                    for (auto &key : reader->metadataValues.getAllKeys()) {
+                        logBox("Metadata: " + key + " : " + reader->metadataValues[key]);
+					}
+                }
+				double duration = reader->lengthInSamples / reader->sampleRate;
+                int min = duration / 60; int sec = (int)duration % 60; int hours = duration / 3600;
+                if (hours > 0)
+                    logBox("Duration: " + juce::String(hours) + ":" + juce::String(min % 60) + ":" + juce::String(sec));
+                else if (min > 0)
+                    logBox("Duration: " + juce::String(min) + ":" + juce::String(sec));
+                else
+					logBox("Duration: " + juce::String(sec) + "s");
+            }
             return true;
         }
     }
+    if (logBox)
+        logBox("Error: could not open file " + file.getFileName());
     return false;
 }
 
-void PlayerAudio::stop() {
+void PlayerAudio::pause() {
     transportSource.stop();
 }
 
@@ -79,3 +99,7 @@ double PlayerAudio::getPosition() const {
 double PlayerAudio::getLength() const {
     return transportSource.getLengthInSeconds();
 }
+void PlayerAudio::goEnd() {
+    return transportSource.setPosition(getLength());
+}
+

@@ -18,12 +18,16 @@ public:
     void releaseResources();
 
     bool LoadFile(const juce::File& file);
-    void stop();
+    void pause();
     void play();
+    void goEnd();
     void restart();
     void setGain(float gain);
     void setPosition(double pos);
     double getPosition() const;
     double getLength() const;
+
+    std::function<void(const juce::String&)>logBox;
+
 
 };

@@ -12,9 +12,10 @@ private:
 	PlayerAudio player1;
 	juce::TextButton loadButton{ "Load Files" };
 	juce::TextButton restartButton{ "Restart" };
-	juce::TextButton stopButton{ "Stop" };
-	juce::TextButton prevButton{ "Previous" };
-	juce::TextButton nextButton{ "Next" };
+	juce::TextButton pauseButton{ "Pause" };
+	juce::TextButton playButton{ "Play" };
+	juce::TextButton goEndButton{ "End" };
+	juce::TextEditor statusBox;
 	juce::Slider volumeSlider;
 
 	std::unique_ptr<juce::FileChooser> fileChooser;
@@ -36,5 +37,5 @@ public:
 	void buttonClicked(juce::Button* button)override;
 	void sliderValueChanged(juce::Slider* slider)override;
 
-
+	void statusBoxMessage(const juce::String& message);
 };
