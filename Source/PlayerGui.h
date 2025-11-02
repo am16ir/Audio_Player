@@ -1,11 +1,48 @@
 #pragma once
 #include <JuceHeader.h>
 #include "PlayerAudio.h"
+#include <vector>
+
+using namespace std;
+
+class tablemodel : public juce::TableListBoxModel {
+
+public:
+	function<void(juce::String)> doubleClick;
+	vector<pair<juce::String,juce::String>> files;
+	tablemodel() = default;
+	void paintCell(juce::Graphics& g, int rowNumber, int columnId, int width, int height, bool rowIsSelected) override {
+		if (columnId == 1) {
+			juce::File f(files[rowNumber].first);
+			g.drawText(f.getFileName(), juce::Rectangle<int>(0, 0, width, height), juce::Justification::centredLeft);
+		}
+		else if (columnId == 2)
+			g.drawText((files[rowNumber].second), juce::Rectangle<int>(0, 0, width, height), juce::Justification::centredLeft);
+	}
+
+	int getNumRows() override {
+		return files.size();
+	}
+	void paintRowBackground(juce::Graphics& g, int rowNumber, int width, int height, bool rowIsSelected) override {
+		if (rowIsSelected)
+			g.fillAll(juce::Colours::lightblue);
+		else
+			g.fillAll(juce::Colours::grey);
+	}
+	void cellDoubleClicked(int rowNumber, int columnId, const juce::MouseEvent& e) override {
+		if (rowNumber >= 0 && rowNumber < files.size()){
+			juce::String filename = files[rowNumber].first;
+			if (doubleClick)
+				doubleClick(filename);
+		}
+	}
+	
+};
 
 
 class PlayerGui	: public juce::AudioAppComponent,
 				  public juce::Button::Listener,
-				  public juce::Slider::Listener 
+				  public juce::Slider::Listener
 {
 private:
 
@@ -21,7 +58,8 @@ private:
 	juce::TextButton mute{ "Mute" };
 	juce::TextEditor statusBox;
 	juce::Slider volumeSlider;
-
+	juce::TableListBox mytable;
+	tablemodel model;
 	std::unique_ptr<juce::FileChooser> fileChooser;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGui)
@@ -42,4 +80,6 @@ public:
 	void sliderValueChanged(juce::Slider* slider)override;
 
 	void statusBoxMessage(const juce::String& message);
+
+	
 };

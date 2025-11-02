@@ -1,4 +1,7 @@
 #include "PlayerGui.h"
+#include <vector>
+using namespace std;
+
 
 
 PlayerGui::PlayerGui() {
@@ -23,12 +26,20 @@ PlayerGui::PlayerGui() {
 	statusBox.setReadOnly(true);
     statusBox.setScrollbarsShown(true);
 	addAndMakeVisible(statusBox);
+ 
 
-    player1.logBox = [this](const juce::String& message)
-    {
-            statusBoxMessage(message); 
-    };
-
+	// Table
+    mytable.getHeader().addColumn("Filename", 1, 180);
+	mytable.getHeader().addColumn("Duration", 2, 180);
+	mytable.setModel(&model);
+	addAndMakeVisible(mytable);
+    model.doubleClick = [this](juce::String filename) {
+        info fileinfo = player1.LoadFile(juce::File(filename));
+		statusBox.clear();
+        statusBoxMessage("FILE: " + fileinfo.get_filename());
+        statusBoxMessage(fileinfo.get_duration());
+        player1.complete(fileinfo.get_filename());
+	};
 }
 
 
@@ -52,8 +63,9 @@ void PlayerGui::resized()
 	statusBox.setBounds(20, 150, getWidth() - 40, 40);
     loopButton.setBounds(420, y, 80, 40);
     mute.setBounds(420, 70, 80, 40);
-    statusBox.setBounds(20, 140, getWidth() - 40, 40);
+    statusBox.setBounds(20, 140, 350, 70);
     volumeSlider.setBounds(20, 110, getWidth() - 40, 30);
+    mytable.setBounds(400, 140, 360, 150);
 }
 
 void PlayerGui::paint(juce::Graphics& g)
@@ -81,9 +93,19 @@ void PlayerGui::buttonClicked(juce::Button* button)
                 auto file = fc.getResult();
                 if (file.existsAsFile()) {
                     statusBox.clear();
-                    player1.LoadFile(file);                    
-                    player1.play();
+                   
+
+                    info fileinfo = player1.LoadFile(file);
+                    statusBoxMessage("FILE: " + fileinfo.get_filename());
+					statusBoxMessage(fileinfo.get_duration());
+					statusBoxMessage(fileinfo.get_metadata());
+
+					model.files.push_back({ fileinfo.get_path(),fileinfo.get_duration()});
+					mytable.updateContent();
                 }
+                else {
+                    statusBoxMessage("Choose Again! ");
+				}
             });
     }
 
@@ -115,10 +137,10 @@ void PlayerGui::buttonClicked(juce::Button* button)
         player1.setLooping(newState);
 
         if (newState) {
-            button->setColour(juce::TextButton::buttonColourId, juce::Colours::blue);
+            button->setColour(juce::TextButton::buttonColourId, juce::Colours::darkblue);
         }
         else {
-            button->setColour(juce::TextButton::buttonColourId, juce::Colours::grey);
+            button->setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
         }
         button->repaint();
     }
