@@ -5,7 +5,8 @@
 
 class PlayerGui	: public juce::AudioAppComponent,
 				  public juce::Button::Listener,
-				  public juce::Slider::Listener 
+				  public juce::Slider::Listener,
+				  public juce::Timer
 {
 private:
 
@@ -21,6 +22,7 @@ private:
 	juce::TextButton mute{ "Mute" };
 	juce::TextEditor statusBox;
 	juce::Slider volumeSlider;
+	juce::Slider positionslider;
 
 	std::unique_ptr<juce::FileChooser> fileChooser;
 
@@ -40,6 +42,8 @@ public:
 
 	void buttonClicked(juce::Button* button)override;
 	void sliderValueChanged(juce::Slider* slider)override;
+
+	void timerCallback() override;
 
 	void statusBoxMessage(const juce::String& message);
 };
