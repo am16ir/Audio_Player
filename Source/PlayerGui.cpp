@@ -3,7 +3,7 @@
 
 PlayerGui::PlayerGui() {
     for (auto* btn : { &loadButton, &restartButton , &pauseButton ,&goEndButton ,&playButton ,
-        &forward ,&backward,&loopButton,&mute})
+        &forward ,&backward,&loopButton,&mute })
     {
         btn->addListener(this);
         addAndMakeVisible(btn);
@@ -16,24 +16,31 @@ PlayerGui::PlayerGui() {
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
 
+    // position slider
+    positionslider.setRange(0.0, 1.0, 0.1);
+    positionslider.setValue(0.0);
+    positionslider.addListener(this);
+    addAndMakeVisible(positionslider);
+
     setSize(500, 250);
     setAudioChannels(0, 2);
 
-	statusBox.setMultiLine(true);
-	statusBox.setReadOnly(true);
+    statusBox.setMultiLine(true);
+    statusBox.setReadOnly(true);
     statusBox.setScrollbarsShown(true);
-	addAndMakeVisible(statusBox);
+    addAndMakeVisible(statusBox);
 
     player1.logBox = [this](const juce::String& message)
-    {
-            statusBoxMessage(message); 
-    };
+        {
+            statusBoxMessage(message);
+        };
 
 }
 
 
 PlayerGui::~PlayerGui()
 {
+    stopTimer();
     shutdownAudio();
 }
 
@@ -46,14 +53,14 @@ void PlayerGui::resized()
     backward.setBounds(120, y, 80, 40);
     forward.setBounds(120, 70, 80, 40);
     pauseButton.setBounds(220, y, 80, 40);
-    playButton.setBounds(220, 70 ,80, 40);
+    playButton.setBounds(220, 70, 80, 40);
     restartButton.setBounds(320, y, 80, 40);
     goEndButton.setBounds(320, 70, 80, 40);
-	statusBox.setBounds(20, 150, getWidth() - 40, 40);
     loopButton.setBounds(420, y, 80, 40);
     mute.setBounds(420, 70, 80, 40);
-    statusBox.setBounds(20, 140, getWidth() - 40, 40);
     volumeSlider.setBounds(20, 110, getWidth() - 40, 30);
+    statusBox.setBounds(20, 180, getWidth() - 40, 40);
+    positionslider.setBounds(20, 140, getWidth() - 40, 30);
 }
 
 void PlayerGui::paint(juce::Graphics& g)
@@ -81,8 +88,14 @@ void PlayerGui::buttonClicked(juce::Button* button)
                 auto file = fc.getResult();
                 if (file.existsAsFile()) {
                     statusBox.clear();
-                    player1.LoadFile(file);                    
-                    player1.play();
+                    if (player1.LoadFile(file))
+                    {
+                        double fileLength = player1.getLength();
+                        positionslider.setRange(0.0, fileLength, 0.1);
+                        positionslider.setValue(0.0, juce::dontSendNotification);
+
+                        player1.play();
+                    }
                 }
             });
     }
@@ -99,7 +112,7 @@ void PlayerGui::buttonClicked(juce::Button* button)
     if (button == &playButton) {
         player1.play();
     }
-  
+
     if (button == &goEndButton) {
         player1.goEnd();
     }
@@ -125,10 +138,10 @@ void PlayerGui::buttonClicked(juce::Button* button)
     if (button == &mute) {
         player1.isMuted = mute.getToggleState();
         player1.mute();
-        if (player1.isMuted) 
-            mute.setButtonText("Unmute");       
-        else          
-            mute.setButtonText("Mute");        
+        if (player1.isMuted)
+            mute.setButtonText("Unmute");
+        else
+            mute.setButtonText("Mute");
     }
 }
 
@@ -150,10 +163,38 @@ void PlayerGui::releaseResources()
 
 void PlayerGui::sliderValueChanged(juce::Slider* slider)
 {
-    if (slider == &volumeSlider && !player1.isMuted)
-        player1.setGain((float)slider->getValue());
-    player1.prevGain = slider->getValue();
+    if (slider == &volumeSlider)
+    {
+        player1.prevGain = (float)slider->getValue();
+        if (!player1.isMuted)
+            player1.setGain(player1.prevGain);
+    }
+
+    if (slider == &positionslider)
+    {
+        player1.setPosition(slider->getValue());
+
+        if (!isTimerRunning())
+            startTimer(50);
+    }
 }
+
+void PlayerGui::timerCallback()
+{
+    double currentPosition = player1.getPosition();
+    double totalLength = player1.getLength();
+
+    positionslider.setValue(currentPosition, juce::dontSendNotification);
+
+    if (currentPosition >= totalLength && totalLength > 0.0)
+    {
+        if (!player1.isLooping())
+        {
+            stopTimer();
+        }
+    }
+}
+
 
 void PlayerGui::statusBoxMessage(const juce::String& message) {
     statusBox.insertTextAtCaret(message + "\n");
