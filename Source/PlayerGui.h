@@ -68,6 +68,10 @@ private:
 	tablemodel model;
 	std::unique_ptr<juce::FileChooser> fileChooser;
 
+	// Member for smooth slider interaction (NEW)
+	bool isSliderDragging = false;
+	// ---
+
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGui)
 
 public:
@@ -84,6 +88,11 @@ public:
 
 	void buttonClicked(juce::Button* button)override;
 	void sliderValueChanged(juce::Slider* slider)override;
+
+	// Slider drag functions for jitter fix (NEW)
+	void sliderDragStarted(juce::Slider* slider) override;
+	void sliderDragEnded(juce::Slider* slider) override;
+	// ---
 
 	void statusBoxMessage(const juce::String& message);
 
