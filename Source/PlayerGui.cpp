@@ -1,9 +1,11 @@
 #include "PlayerGui.h"
+#include <vector>
+using namespace std;
 
 
 PlayerGui::PlayerGui() {
     for (auto* btn : { &loadButton, &restartButton , &pauseButton ,&goEndButton ,&playButton ,
-        &forward ,&backward,&loopButton,&mute })
+        &forward ,&backward,&loopButton,&mute,&startingpoint,&endingpoint,&Deletepoints,&looponpoints })
     {
         btn->addListener(this);
         addAndMakeVisible(btn);
@@ -16,12 +18,6 @@ PlayerGui::PlayerGui() {
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
 
-    // position slider
-    positionslider.setRange(0.0, 1.0, 0.1);
-    positionslider.setValue(0.0);
-    positionslider.addListener(this);
-    addAndMakeVisible(positionslider);
-
     setSize(500, 250);
     setAudioChannels(0, 2);
 
@@ -30,17 +26,31 @@ PlayerGui::PlayerGui() {
     statusBox.setScrollbarsShown(true);
     addAndMakeVisible(statusBox);
 
-    player1.logBox = [this](const juce::String& message)
-        {
-            statusBoxMessage(message);
+    // position slider 
+    positionslider.setRange(0.0, 1, 0.01); 
+    positionslider.setValue(0.0);
+    positionslider.addListener(this);
+    addAndMakeVisible(positionslider);
+
+    // Table
+    mytable.getHeader().addColumn("Filename", 1, 180);
+    mytable.getHeader().addColumn("Duration", 2, 180);
+    mytable.setModel(&model);
+    addAndMakeVisible(mytable);
+    model.doubleClick = [this](juce::String filename) {
+        info fileinfo = player1.LoadFile(juce::File(filename));
+        statusBox.clear();
+        statusBoxMessage("FILE: " + fileinfo.get_filename());
+        statusBoxMessage(fileinfo.get_duration());
+        player1.complete(fileinfo.get_filename());
         };
 
+    startTimer(50);
 }
 
 
 PlayerGui::~PlayerGui()
 {
-    stopTimer();
     shutdownAudio();
 }
 
@@ -58,9 +68,15 @@ void PlayerGui::resized()
     goEndButton.setBounds(320, 70, 80, 40);
     loopButton.setBounds(420, y, 80, 40);
     mute.setBounds(420, 70, 80, 40);
+    startingpoint.setBounds(520, y, 100, 40);
+    endingpoint.setBounds(520, 70, 100, 40);
+    looponpoints.setBounds(630, 20, 80, 90);
+    Deletepoints.setBounds(730, 20, 80, 90);
     volumeSlider.setBounds(20, 110, getWidth() - 40, 30);
-    statusBox.setBounds(20, 180, getWidth() - 40, 40);
-    positionslider.setBounds(20, 140, getWidth() - 40, 30);
+    positionslider.setBounds(20, 150, getWidth() - 40, 30);
+    statusBox.setBounds(20, 190, 350, 70);
+    mytable.setBounds(400, 190, 360, 150);
+    
 }
 
 void PlayerGui::paint(juce::Graphics& g)
@@ -88,14 +104,18 @@ void PlayerGui::buttonClicked(juce::Button* button)
                 auto file = fc.getResult();
                 if (file.existsAsFile()) {
                     statusBox.clear();
-                    if (player1.LoadFile(file))
-                    {
-                        double fileLength = player1.getLength();
-                        positionslider.setRange(0.0, fileLength, 0.1);
-                        positionslider.setValue(0.0, juce::dontSendNotification);
 
-                        player1.play();
-                    }
+
+                    info fileinfo = player1.LoadFile(file);
+                    statusBoxMessage("FILE: " + fileinfo.get_filename());
+                    statusBoxMessage(fileinfo.get_duration());
+                    statusBoxMessage(fileinfo.get_metadata());
+
+                    model.files.push_back({ fileinfo.get_path(),fileinfo.get_duration() });
+                    mytable.updateContent();
+                }
+                else {
+                    statusBoxMessage("Choose Again! ");
                 }
             });
     }
@@ -128,10 +148,10 @@ void PlayerGui::buttonClicked(juce::Button* button)
         player1.setLooping(newState);
 
         if (newState) {
-            button->setColour(juce::TextButton::buttonColourId, juce::Colours::blue);
+            button->setColour(juce::TextButton::buttonColourId, juce::Colours::darkblue);
         }
         else {
-            button->setColour(juce::TextButton::buttonColourId, juce::Colours::grey);
+            button->setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
         }
         button->repaint();
     }
@@ -163,20 +183,24 @@ void PlayerGui::releaseResources()
 
 void PlayerGui::sliderValueChanged(juce::Slider* slider)
 {
-    if (slider == &volumeSlider)
-    {
-        player1.prevGain = (float)slider->getValue();
+    if (slider == &volumeSlider) {
         if (!player1.isMuted)
-            player1.setGain(player1.prevGain);
+            player1.setGain((float)slider->getValue());
+        player1.prevGain = slider->getValue(); 
     }
 
-    if (slider == &positionslider)
-    {
-        player1.setPosition(slider->getValue());
+    if (slider == &positionslider) {
+        double totalLength = player1.getLength();
+        if (totalLength > 0.0) {
+            double newPosition = slider->getValue() * totalLength;
+            player1.setPosition(newPosition);
 
-        if (!isTimerRunning())
-            startTimer(50);
+        }
     }
+}
+
+void PlayerGui::statusBoxMessage(const juce::String& message) {
+    statusBox.insertTextAtCaret(message + "\n");
 }
 
 void PlayerGui::timerCallback()
@@ -184,18 +208,10 @@ void PlayerGui::timerCallback()
     double currentPosition = player1.getPosition();
     double totalLength = player1.getLength();
 
-    positionslider.setValue(currentPosition, juce::dontSendNotification);
-
-    if (currentPosition >= totalLength && totalLength > 0.0)
+    if (totalLength > 0.0)
     {
-        if (!player1.isLooping())
-        {
-            stopTimer();
-        }
+        double sliderValue = currentPosition / totalLength;
+        positionslider.setValue(sliderValue, juce::dontSendNotification);
     }
-}
 
-
-void PlayerGui::statusBoxMessage(const juce::String& message) {
-    statusBox.insertTextAtCaret(message + "\n");
 }
