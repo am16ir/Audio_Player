@@ -90,6 +90,10 @@ info PlayerAudio::LoadFile(const juce::File& file) {
             currentFileName = file.getFileName();
             transportSource.start();
 
+            startPoint = 0.0;
+            endPoint = transportSource.getLengthInSeconds();
+            isSegmentLooping = false;
+
             myinfo.set_filename(file.getFileName());
             myinfo.set_metadata(reader->metadataValues);
             myinfo.set_duration(reader->lengthInSamples / reader->sampleRate);
@@ -177,4 +181,42 @@ void PlayerAudio::mute() {
         transportSource.setGain(0.0);
     else
         transportSource.setGain(prevGain);
+}
+
+
+void PlayerAudio::setStartPoint(double pos) {
+    double totalLength = getLength();
+    if (pos >= 0.0 && pos < totalLength) {
+        startPoint = pos;
+        if (endPoint <= startPoint || endPoint == 0.0) {
+            endPoint = totalLength;
+        }
+        if (getPosition() < startPoint) setPosition(startPoint);
+    }
+}
+
+void PlayerAudio::setEndPoint(double pos) {
+    double totalLength = getLength();
+    if (pos > startPoint && pos <= totalLength) {
+        endPoint = pos;
+        if (getPosition() >= endPoint) setPosition(startPoint);
+    }
+    else if (pos <= startPoint) {
+        endPoint = totalLength;
+    }
+}
+
+void PlayerAudio::clearSegmentPoints() {
+    startPoint = 0.0;
+    endPoint = getLength();
+    isSegmentLooping = false;
+}
+
+void PlayerAudio::setSegmentLooping(bool shouldLoop) {
+    isSegmentLooping = shouldLoop;
+    if (shouldLoop && getLength() > 0.0) {
+        if (getPosition() < startPoint || getPosition() >= endPoint) {
+            setPosition(startPoint);
+        }
+    }
 }
