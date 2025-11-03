@@ -64,6 +64,10 @@ public:
     std::unordered_map<juce::String, float>songs;
     juce::String currentFileName;
 
+    double startPoint = 0.0;
+    double endPoint = 0.0;
+    bool isSegmentLooping = false;
+
 
     info LoadFile(const juce::File& file);
     void pause();
@@ -82,6 +86,12 @@ public:
     void setLooping(bool shouldLoop);
     bool isLooping() const;
 
-
+    void setStartPoint(double pos);
+    void setEndPoint(double pos);
+    void clearSegmentPoints();
+    void setSegmentLooping(bool shouldLoop);
+    double getStartPoint() const { return startPoint; }
+    double getEndPoint() const { return endPoint; }
+    bool getSegmentLooping() const { return isSegmentLooping; }
 
 };
