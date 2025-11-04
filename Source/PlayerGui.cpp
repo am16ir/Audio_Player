@@ -246,7 +246,7 @@ void PlayerGui::sliderDragEnded(juce::Slider* slider)
         isSliderDragging = false;
         double totalLength = player1.getLength();
         if (totalLength > 0.0) {
-            double newPosition = slider->getValue() * totalLength;
+            double newPosition = slider->getValue();
             player1.setPosition(newPosition);
 
             if (player1.getSegmentLooping()) {
@@ -261,13 +261,17 @@ void PlayerGui::sliderDragEnded(juce::Slider* slider)
 
 void PlayerGui::sliderValueChanged(juce::Slider* slider)
 {
-    if (slider == &volumeSlider) {
-        if (!player1.isMuted)
-            player1.setGain((float)slider->getValue());
+    if (slider == &volumeSlider && !player1.isMuted) {
+        player1.setGain((float)slider->getValue());
         player1.prevGain = slider->getValue();
     }
-
     if (slider == &positionslider) {
+        double totalLength = player1.getLength();
+        if (totalLength > 0.0) {
+            double newPosition = slider->getValue();
+            player1.setPosition(newPosition);
+
+        }
     }
 }
 
@@ -297,7 +301,8 @@ void PlayerGui::timerCallback()
     if (totalLength > 0.0)
     {
         if (!isSliderDragging) {
-            double sliderValue = currentPosition / totalLength;
+            double sliderValue = currentPosition;
+            positionslider.setRange(0.0, totalLength, 1.0);
             positionslider.setValue(sliderValue, juce::dontSendNotification);
         }
     }
