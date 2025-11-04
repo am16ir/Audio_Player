@@ -1,74 +1,93 @@
-﻿#pragma once
-
+#pragma once
 #include <JuceHeader.h>
-#include <functional>
-#include <memory>
+#include <unordered_map>
+class info {
+    juce::String filename;
+    double duration = 0;
+    juce::StringPairArray metadata;
+    juce::String durationMessage;
+    juce::String filepath;
+    juce::String message;
 
-#ifdef SOUND_TOUCH_AVAILABLE
-// إذا فعلت SoundTouch: تأكد أن المسار صحيح
-#include "SoundTouch.h"
-using namespace soundtouch;
-#endif
+    void durationFormat() {
+        int hours = duration / 3600;
+        int min = duration / 60;
+        int sec = (int)duration % 60;
+        if (hours > 0)
+            durationMessage = "Duration: " + juce::String(hours) + ":" + juce::String(min % 60) + ":" + juce::String(sec);
+        else if (min > 0)
+            durationMessage = "Duration: " + juce::String(min) + ":" + juce::String(sec);
+        else
+            durationMessage = "Duration: " + juce::String(sec) + "s";
+    }
 
-class PlayerAudio
-{
+    void metadataFormat() {
+        if (metadata.getAllKeys() > 0) {
+            for (auto& key : metadata.getAllKeys()) {
+                message += "Metadata: " + key + " : " + metadata[key];
+            }
+        }
+    }
+
+public:
+    info(juce::String fn, double dur, juce::StringPairArray meta, juce::String fp);
+    info() = default;
+    juce::String get_filename();
+    juce::String get_duration();
+    juce::String get_metadata();
+    juce::String get_path();
+
+    void set_filename(juce::String f);
+    void set_duration(double d);
+    void set_metadata(juce::StringPairArray m);
+    void set_filepath(juce::String fp);
+};
+
+class PlayerAudio {
+private:
+    juce::AudioFormatManager formatManager;
+    std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
+    juce::AudioTransportSource transportSource;
+
+    juce::ResamplingAudioSource resampleSource{ &transportSource, false }; // ***Sayed***
+
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)
+
 public:
     PlayerAudio();
     ~PlayerAudio();
 
-    // audio lifecycle (called by AudioAppComponent)
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
-    void releaseResources();
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill);
+    void releaseResources();
 
-    // controls
-    bool LoadFile(const juce::File& file); // returns true if loaded successfully
-    void play();
+    float prevGain;
+    std::unordered_map<juce::String, float>songs;
+    juce::String currentFileName;
+
+
+    info LoadFile(const juce::File& file);
     void pause();
-    void restart();
+    void play();
     void goEnd();
-
+    void restart();
+    void forward();
+    void backward();
     void setGain(float gain);
-    void setPosition(double pos); // seconds
+    void setPosition(double pos);
     double getPosition() const;
     double getLength() const;
-
+    void mute();
+    void complete(juce::String name);
+    bool isMuted = false;
     void setLooping(bool shouldLoop);
     bool isLooping() const;
 
-    void setSpeed(double ratio); // 1.0 = normal
-    double getSpeed() const;
-
-    void setMute(bool shouldMute);
-    bool isMuted() const;
-
-    bool isLoaded() const;
-
-    // logging callback (GUI sets this)
-    std::function<void(const juce::String&)> logBox;
+	void setSpeed(float newSpeed);//***Sayed***
+	float getSpeed() const;//***Sayed***
 
 private:
-    juce::AudioFormatManager formatManager;
-    std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
+	float currentSpeed = 1.0f; //***Sayed***
 
-    // TransportSource used to manage reading/position
-    juce::AudioTransportSource transportSource;
-
-    // If SoundTouch not present we use ResamplingAudioSource to change rate (this changes pitch).
-    std::unique_ptr<juce::ResamplingAudioSource> resampler; // wraps transportSource
-
-#ifdef SOUND_TOUCH_AVAILABLE
-    // SoundTouch path (time-stretch preserving pitch)
-    std::unique_ptr<SoundTouch> soundTouch;
-    juce::AudioBuffer<float> scratchBuffer; // temp for soundtouch I/O if needed
-#endif
-
-    // state
-    bool loaded{ false };
-    bool muted{ false };
-    float lastGainBeforeMute{ 0.8f };
-
-    // remember last prepare values to prepare resampler/soundtouch if created later
-    int lastBlockSizeExpected{ 0 };
-    double lastSampleRate{ 0.0 };
 };

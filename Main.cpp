@@ -1,8 +1,7 @@
 #include <JuceHeader.h>
 #include "PlayerGui.h"
-#include "PlayerAudio.h"
 
-// Our application class
+
 class SimpleAudioPlayer : public juce::JUCEApplication
 {
 public:
@@ -11,34 +10,28 @@ public:
 
     void initialise(const juce::String&) override
     {
+
         mainWindow = std::make_unique<MainWindow>(getApplicationName());
     }
 
     void shutdown() override
     {
-        mainWindow = nullptr; // Clean up
+        mainWindow = nullptr;
     }
 
 private:
-    // The main window of the app
+
     class MainWindow : public juce::DocumentWindow
     {
     public:
         MainWindow(juce::String name)
             : DocumentWindow(name,
-                juce::Colours::lightgrey,
+                juce::Colours::darkred,
                 DocumentWindow::allButtons)
         {
             setUsingNativeTitleBar(true);
-
-            // Create PlayerAudio instance (owned by MainWindow)
-            playerAudio = std::make_unique<PlayerAudio>();
-
-            // Create GUI and pass PlayerAudio by reference
-            setContentOwned(new PlayerGui(*playerAudio), true);
-
-            centreWithSize(1000, 500);
-            setResizable(true, true);
+            setContentOwned(new PlayerGui(), true);
+            centreWithSize(900, 600);
             setVisible(true);
         }
 
@@ -46,13 +39,10 @@ private:
         {
             juce::JUCEApplication::getInstance()->systemRequestedQuit();
         }
-
-    private:
-        std::unique_ptr<PlayerAudio> playerAudio;
     };
 
     std::unique_ptr<MainWindow> mainWindow;
 };
 
-// This macro starts the app
+
 START_JUCE_APPLICATION(SimpleAudioPlayer)
