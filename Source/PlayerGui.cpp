@@ -5,13 +5,13 @@ using namespace std;
 
 PlayerGui::PlayerGui() {
     for (auto* btn : { &loadButton, &restartButton , &pauseButton ,&goEndButton ,&playButton ,
-        &forward ,&backward,&loopButton,&mute,&startingpoint,&endingpoint,&Deletepoints,&looponpoints })
+        &forward ,&backward,&loopButton,&mute,&startingpoint,&endingpoint,&Deletepoints,&looponpoints,&addMarker })
     {
         btn->addListener(this);
         addAndMakeVisible(btn);
     }
     mute.setClickingTogglesState(true);
-    looponpoints.setClickingTogglesState(true); 
+    looponpoints.setClickingTogglesState(true);
 
     // Volume slider
     volumeSlider.setRange(0.0, 1.0, 0.01);
@@ -77,6 +77,7 @@ void PlayerGui::resized()
     endingpoint.setBounds(520, 70, 100, 40);
     looponpoints.setBounds(630, 20, 80, 90);
     Deletepoints.setBounds(730, 20, 80, 90);
+    addMarker.setBounds(830, 20, 100, 40);
     volumeSlider.setBounds(20, 110, getWidth() - 40, 30);
     positionslider.setBounds(20, 150, getWidth() - 40, 30);
     statusBox.setBounds(20, 190, 350, 70);
@@ -126,9 +127,6 @@ void PlayerGui::buttonClicked(juce::Button* button)
                 else {
                     statusBoxMessage("Choose Again! ");
                 }
-                else {
-                    statusBoxMessage("Choose Again! ");
-				}
             });
     }
 
@@ -176,21 +174,21 @@ void PlayerGui::buttonClicked(juce::Button* button)
             mute.setButtonText("Mute");
     }
 
-    if (button == &startingpoint) { 
+    if (button == &startingpoint) {
         player1.setStartPoint(player1.getPosition());
         statusBoxMessage("Point A set to: " + juce::String(player1.getStartPoint(), 2) + "s");
     }
-    if (button == &endingpoint) { 
+    if (button == &endingpoint) {
         player1.setEndPoint(player1.getPosition());
         statusBoxMessage("Point B set to: " + juce::String(player1.getEndPoint(), 2) + "s");
     }
-    if (button == &Deletepoints) { 
+    if (button == &Deletepoints) {
         player1.clearSegmentPoints();
         looponpoints.setToggleState(false, juce::dontSendNotification);
         looponpoints.setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
         statusBoxMessage("Segment loop points cleared.");
     }
-    if (button == &looponpoints) { 
+    if (button == &looponpoints) {
         bool newState = looponpoints.getToggleState();
 
         double A = player1.getStartPoint();
@@ -249,7 +247,7 @@ void PlayerGui::sliderDragEnded(juce::Slider* slider)
         isSliderDragging = false;
         double totalLength = player1.getLength();
         if (totalLength > 0.0) {
-            double newPosition = slider->getValue();
+            double newPosition = slider->getValue() * totalLength;
             player1.setPosition(newPosition);
 
             if (player1.getSegmentLooping()) {
@@ -264,17 +262,13 @@ void PlayerGui::sliderDragEnded(juce::Slider* slider)
 
 void PlayerGui::sliderValueChanged(juce::Slider* slider)
 {
-    if (slider == &volumeSlider && !player1.isMuted) {
-        player1.setGain((float)slider->getValue());
+    if (slider == &volumeSlider) {
+        if (!player1.isMuted)
+            player1.setGain((float)slider->getValue());
         player1.prevGain = slider->getValue();
     }
-    if (slider == &positionslider) {
-        double totalLength = player1.getLength();
-        if (totalLength > 0.0) {
-            double newPosition = slider->getValue();
-            player1.setPosition(newPosition);
 
-        }
+    if (slider == &positionslider) {
     }
 }
 
@@ -298,15 +292,21 @@ void PlayerGui::timerCallback()
             currentPosition = A;
         }
     }
-   
+    else if (player1.isLooping() && totalLength > 0.0)
+    {
+        if (currentPosition >= totalLength - 0.01)
+        {
+            player1.setPosition(0.0);
+            currentPosition = 0.0;   
+        }
+    }
 
 
     if (totalLength > 0.0)
     {
         if (!isSliderDragging) {
-            double sliderValue = currentPosition;
-            positionslider.setRange(0.0, totalLength, 1.0);
+            double sliderValue = currentPosition / totalLength;
             positionslider.setValue(sliderValue, juce::dontSendNotification);
         }
     }
-}
+} 
