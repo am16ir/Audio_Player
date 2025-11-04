@@ -11,7 +11,7 @@ PlayerGui::PlayerGui() {
         addAndMakeVisible(btn);
     }
     mute.setClickingTogglesState(true);
-    looponpoints.setClickingTogglesState(true); // Set looponpoints to toggle state (NEW)
+    looponpoints.setClickingTogglesState(true); 
 
     // Volume slider
     volumeSlider.setRange(0.0, 1.0, 0.01);
@@ -231,7 +231,6 @@ void PlayerGui::releaseResources()
     player1.releaseResources();
 }
 
-// Implement sliderDragStarted and sliderDragEnded for smooth slider (NEW)
 void PlayerGui::sliderDragStarted(juce::Slider* slider)
 {
     if (slider == &positionslider)
