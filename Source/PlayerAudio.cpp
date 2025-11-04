@@ -14,9 +14,9 @@ juce::String info::get_metadata() {
 juce::String info::get_path() {
     return filepath;
 }
-info::info(juce::String fn, double dur, juce::StringPairArray meta, juce::String fp) : filename(fn), duration(dur),
-metadata(meta), filepath(fp) {
-
+info::info(juce::String fn, double dur, juce::StringPairArray meta,juce::String fp) : filename(fn),duration(dur),
+metadata(meta),filepath(fp){
+    
     durationFormat();
     metadataFormat();
 }

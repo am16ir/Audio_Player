@@ -126,6 +126,9 @@ void PlayerGui::buttonClicked(juce::Button* button)
                 else {
                     statusBoxMessage("Choose Again! ");
                 }
+                else {
+                    statusBoxMessage("Choose Again! ");
+				}
             });
     }
 
