@@ -9,7 +9,7 @@ class tablemodel : public juce::TableListBoxModel {
 
 public:
 	function<void(juce::String)> doubleClick;
-	vector<pair<juce::String,juce::String>> files;
+	vector<pair<juce::String, juce::String>> files;
 	tablemodel() = default;
 	void paintCell(juce::Graphics& g, int rowNumber, int columnId, int width, int height, bool rowIsSelected) override {
 		if (columnId == 1) {
@@ -30,19 +30,20 @@ public:
 			g.fillAll(juce::Colours::grey);
 	}
 	void cellDoubleClicked(int rowNumber, int columnId, const juce::MouseEvent& e) override {
-		if (rowNumber >= 0 && rowNumber < files.size()){
+		if (rowNumber >= 0 && rowNumber < files.size()) {
 			juce::String filename = files[rowNumber].first;
 			if (doubleClick)
 				doubleClick(filename);
 		}
 	}
-	
+
 };
 
 
-class PlayerGui	: public juce::AudioAppComponent,
-				  public juce::Button::Listener,
-				  public juce::Slider::Listener
+class PlayerGui : public juce::AudioAppComponent,
+	public juce::Button::Listener,
+	public juce::Slider::Listener,
+	public juce::Timer
 {
 private:
 
@@ -56,11 +57,18 @@ private:
 	juce::TextButton backward{ "Backward -10" };
 	juce::TextButton loopButton{ "Loop" };
 	juce::TextButton mute{ "Mute" };
+	juce::TextButton startingpoint{ "Starting point" };
+	juce::TextButton endingpoint{ "Ending point" };
+	juce::TextButton Deletepoints{ "Delete points" };
+	juce::TextButton looponpoints{ "LOOP ON POINTS" };
 	juce::TextEditor statusBox;
 	juce::Slider volumeSlider;
 	juce::TableListBox mytable;
+	juce::Slider positionslider;
 	tablemodel model;
 	std::unique_ptr<juce::FileChooser> fileChooser;
+
+	bool isSliderDragging = false;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGui)
 
@@ -72,14 +80,19 @@ public:
 	void prepareToPlay(int samplesPerBlockExpected, double sampleRate)override;
 	void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)override;
 	void releaseResources()override;
-	
+
 	void paint(juce::Graphics& g) override;
 	void resized() override;
 
 	void buttonClicked(juce::Button* button)override;
 	void sliderValueChanged(juce::Slider* slider)override;
 
+	
+	void sliderDragStarted(juce::Slider* slider) override;
+	void sliderDragEnded(juce::Slider* slider) override;
+
+
 	void statusBoxMessage(const juce::String& message);
 
-	
+	void timerCallback() override;
 };

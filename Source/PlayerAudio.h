@@ -8,7 +8,7 @@ class info {
     juce::String durationMessage;
     juce::String filepath;
     juce::String message;
-    
+
     void durationFormat() {
         int hours = duration / 3600;
         int min = duration / 60;
@@ -30,8 +30,8 @@ class info {
     }
 
 public:
-    info(juce::String fn, double dur, juce::StringPairArray meta,juce::String fp);
-    info() = default ;
+    info(juce::String fn, double dur, juce::StringPairArray meta, juce::String fp);
+    info() = default;
     juce::String get_filename();
     juce::String get_duration();
     juce::String get_metadata();
@@ -64,7 +64,11 @@ public:
     std::unordered_map<juce::String, float>songs;
     juce::String currentFileName;
 
-    
+    double startPoint = 0.0;
+    double endPoint = 0.0;
+    bool isSegmentLooping = false;
+
+
     info LoadFile(const juce::File& file);
     void pause();
     void play();
@@ -81,7 +85,13 @@ public:
     bool isMuted = false;
     void setLooping(bool shouldLoop);
     bool isLooping() const;
- 
 
+    void setStartPoint(double pos);
+    void setEndPoint(double pos);
+    void clearSegmentPoints();
+    void setSegmentLooping(bool shouldLoop);
+    double getStartPoint() const { return startPoint; }
+    double getEndPoint() const { return endPoint; }
+    bool getSegmentLooping() const { return isSegmentLooping; }
 
 };
