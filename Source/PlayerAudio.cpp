@@ -14,9 +14,9 @@ juce::String info::get_metadata() {
 juce::String info::get_path() {
     return filepath;
 }
-info::info(juce::String fn, double dur, juce::StringPairArray meta,juce::String fp) : filename(fn),duration(dur),
-metadata(meta),filepath(fp){
-    
+info::info(juce::String fn, double dur, juce::StringPairArray meta, juce::String fp) : filename(fn), duration(dur),
+metadata(meta), filepath(fp) {
+
     durationFormat();
     metadataFormat();
 }
@@ -38,7 +38,9 @@ void info::set_filepath(juce::String fp) {
     filepath = fp;
 }
 
-PlayerAudio::PlayerAudio() {
+PlayerAudio::PlayerAudio() 
+    : resampleSource(&transportSource, false)  // ***Sayed***
+{
     formatManager.registerBasicFormats();
 
 }
@@ -57,12 +59,12 @@ void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 
 void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    transportSource.getNextAudioBlock(bufferToFill);
+    resampleSource.getNextAudioBlock(bufferToFill);//*** Eidted by Sayed***
 }
 
 void PlayerAudio::releaseResources()
 {
-    transportSource.releaseResources();
+    resampleSource.releaseResources();//*** Eidted by Sayed***
 }
 
 info PlayerAudio::LoadFile(const juce::File& file) {
@@ -87,6 +89,9 @@ info PlayerAudio::LoadFile(const juce::File& file) {
                 0,
                 nullptr,
                 reader->sampleRate);
+
+            resampleSource.setResamplingRatio(currentSpeed); // ***Sayed***
+
             currentFileName = file.getFileName();
             transportSource.start();
 
@@ -114,7 +119,7 @@ void PlayerAudio::play() {
 }
 
 void PlayerAudio::complete(juce::String name) {
-    if (songs.count(name))
+    if (songs.count(name) == 0)
         transportSource.setPosition(0.0);
     else
         transportSource.setPosition(songs[name]);
@@ -219,4 +224,25 @@ void PlayerAudio::setSegmentLooping(bool shouldLoop) {
             setPosition(startPoint);
         }
     }
+}
+
+void PlayerAudio::clearMarkers() {
+    markers[currentFileName].clear();
+}
+
+
+
+
+
+///// ******** Sayed ******** //////
+void PlayerAudio::setSpeed(float newSpeed)
+{
+    currentSpeed = juce::jlimit(0.25f, 4.0f, newSpeed);
+    resampleSource.setResamplingRatio(currentSpeed);
+
+}
+
+float PlayerAudio::getSpeed() const
+{
+    return currentSpeed;
 }
