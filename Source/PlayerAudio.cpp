@@ -59,12 +59,14 @@ void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 
 void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    resampleSource.getNextAudioBlock(bufferToFill);//*** Eidted by Sayed***
+	transportSource.getNextAudioBlock(bufferToFill);
+    //resampleSource.getNextAudioBlock(bufferToFill);//*** Eidted by Sayed***
 }
 
 void PlayerAudio::releaseResources()
 {
-    resampleSource.releaseResources();//*** Eidted by Sayed***
+    transportSource.releaseResources();
+   // resampleSource.releaseResources();//*** Eidted by Sayed***
 }
 
 info PlayerAudio::LoadFile(const juce::File& file) {

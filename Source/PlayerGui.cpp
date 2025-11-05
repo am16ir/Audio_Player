@@ -35,7 +35,7 @@ PlayerGui::PlayerGui()
     addAndMakeVisible(waveformDisplay);	// ******Sayed******
 
     setSize(850, 600);//***Editing by sayed
-    //setAudioChannels(0, 2);
+    setAudioChannels(0, 2);
 
     statusBox.setMultiLine(true);
     statusBox.setReadOnly(true);
