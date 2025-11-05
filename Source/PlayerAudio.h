@@ -1,6 +1,7 @@
 #pragma once
 #include <JuceHeader.h>
 #include <unordered_map>
+#include <map>
 class info {
     juce::String filename;
     double duration = 0;
@@ -49,6 +50,9 @@ private:
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     juce::AudioTransportSource transportSource;
 
+    juce::ResamplingAudioSource resampleSource{ &transportSource, false }; // ***Sayed***
+
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)
 
@@ -56,12 +60,16 @@ public:
     PlayerAudio();
     ~PlayerAudio();
 
+    juce::AudioFormatManager& getFormatManager() { return formatManager; }//////*****Sayed to Wave
+
+
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill);
     void releaseResources();
 
     float prevGain;
     std::unordered_map<juce::String, float>songs;
+    std::unordered_map<juce::String, std::vector<double>> markers;
     juce::String currentFileName;
 
     double startPoint = 0.0;
@@ -93,5 +101,13 @@ public:
     double getStartPoint() const { return startPoint; }
     double getEndPoint() const { return endPoint; }
     bool getSegmentLooping() const { return isSegmentLooping; }
+
+    void clearMarkers();
+
+    void setSpeed(float newSpeed);//***Sayed***
+    float getSpeed() const;//***Sayed***
+
+private:
+    float currentSpeed = 1.0f; //***Sayed***
 
 };
