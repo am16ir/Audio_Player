@@ -3,9 +3,13 @@
 using namespace std;
 
 
-PlayerGui::PlayerGui() {
+PlayerGui::PlayerGui()
+    : waveformDisplay(player1, player1.getFormatManager()) // *****Sayed******
+
+{
     for (auto* btn : { &loadButton, &restartButton , &pauseButton ,&goEndButton ,&playButton ,
-        &forward ,&backward,&loopButton,&mute,&startingpoint,&endingpoint,&Deletepoints,&looponpoints,&addMarker })
+        &forward ,&backward,&loopButton,&mute,&startingpoint,&endingpoint,&Deletepoints,&looponpoints,
+        &markerButton,&clearMarkers,&clear,&removeSelected, &nextButton, &previousButton }) // ***أضيفت nextButton و previousButton ***
     {
         btn->addListener(this);
         addAndMakeVisible(btn);
@@ -19,7 +23,18 @@ PlayerGui::PlayerGui() {
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
 
-    setSize(500, 250);
+
+    // Speed slider ****sayed****
+    speedSlider.setRange(0.25, 4.0, 0.05); // Range from 0.25x to 4.0x speed
+    speedSlider.setValue(1.0); // Default normal speed
+    speedSlider.addListener(this);
+    speedSlider.setSkewFactorFromMidPoint(1.0); // Makes slider more sensitive around normal speed
+    speedSlider.setTextValueSuffix("x"); // Display suffix
+    addAndMakeVisible(speedSlider);
+
+    addAndMakeVisible(waveformDisplay);	// ******Sayed******
+
+    setSize(950, 600);//*** Editing by Sayed - تم زيادة العرض لاستيعاب الأزرار ***
     setAudioChannels(0, 2);
 
     statusBox.setMultiLine(true);
@@ -41,6 +56,7 @@ PlayerGui::PlayerGui() {
     model.doubleClick = [this](juce::String filename) {
         info fileinfo = player1.LoadFile(juce::File(filename));
         statusBox.clear();
+
         statusBoxMessage("FILE: " + fileinfo.get_filename());
         statusBoxMessage(fileinfo.get_duration());
         player1.complete(fileinfo.get_filename());
@@ -73,21 +89,36 @@ void PlayerGui::resized()
     goEndButton.setBounds(320, 70, 80, 40);
     loopButton.setBounds(420, y, 80, 40);
     mute.setBounds(420, 70, 80, 40);
-    startingpoint.setBounds(520, y, 100, 40);
-    endingpoint.setBounds(520, 70, 100, 40);
-    looponpoints.setBounds(630, 20, 80, 90);
-    Deletepoints.setBounds(730, 20, 80, 90);
-    addMarker.setBounds(830, 20, 100, 40);
-    volumeSlider.setBounds(20, 110, getWidth() - 40, 30);
-    positionslider.setBounds(20, 150, getWidth() - 40, 30);
-    statusBox.setBounds(20, 190, 350, 70);
-    mytable.setBounds(400, 190, 360, 150);
+    startingpoint.setBounds(520, y, 80, 40);
+    endingpoint.setBounds(520, 70, 80, 40);
+    looponpoints.setBounds(630, 20, 80, 40);
+    Deletepoints.setBounds(630, 70, 80, 40);
+    markerButton.setBounds(730, 20, 80, 40);
+    clearMarkers.setBounds(730, 70, 80, 40);
+    previousButton.setBounds(820, y, 80, 40);
+    nextButton.setBounds(820, 70, 80, 40);
+
+
+    waveformDisplay.setBounds(20, 130, getWidth() - 40, 80);// ****Sayed****
+
+    volumeSlider.setBounds(20, 220, getWidth() - 40, 30);
+    positionslider.setBounds(20, 260, getWidth() - 40, 30);
+    speedSlider.setBounds(20, 300, getWidth() - 40, 30); // ****Sayed****
+
+    statusBox.setBounds(20, 390, 350, 70);
+    mytable.setBounds(400, 390, 360, 150);
+    clear.setBounds(400, 350, 80, 30);
+    removeSelected.setBounds(500, 350, 120, 30);
+
+
 
 }
 
 void PlayerGui::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::darkgrey);
+    g.fillAll(juce::Colours::lightblue);
+    // Add label for speed slider     ****Sayed****
+    g.setColour(juce::Colours::white);
 }
 
 void PlayerGui::buttonClicked(juce::Button* button)
@@ -117,6 +148,9 @@ void PlayerGui::buttonClicked(juce::Button* button)
                     statusBoxMessage(fileinfo.get_duration());
                     statusBoxMessage(fileinfo.get_metadata());
 
+                    //  waveform Sayed
+                    waveformDisplay.setFile(file);
+
                     model.files.push_back({ fileinfo.get_path(),fileinfo.get_duration() });
                     mytable.updateContent();
 
@@ -130,9 +164,50 @@ void PlayerGui::buttonClicked(juce::Button* button)
             });
     }
 
+    if (button == &nextButton || button == &previousButton)
+    {
+        int currentRow = mytable.getSelectedRow();
+        int totalRows = model.getNumRows();
+        int newRow = currentRow;
+
+        if (totalRows == 0) {
+            statusBoxMessage("Table is empty. Load files first.");
+            return;
+        }
+
+        if (currentRow == -1) {
+            newRow = 0;
+        }
+        else if (button == &nextButton) {
+            newRow = (currentRow + 1) % totalRows;
+        }
+        else if (button == &previousButton) {
+            newRow = (currentRow - 1 + totalRows) % totalRows;
+        }
+
+        if (newRow != currentRow)
+        {
+            mytable.selectRow(newRow, true, true);
+
+            juce::String filenameToLoad = model.files[newRow].first;
+            info fileinfo = player1.LoadFile(juce::File(filenameToLoad));
+
+            statusBox.clear();
+            statusBoxMessage("FILE: " + fileinfo.get_filename());
+            statusBoxMessage(fileinfo.get_duration());
+            player1.complete(fileinfo.get_filename());
+
+            waveformDisplay.setFile(juce::File(filenameToLoad));
+            looponpoints.setToggleState(false, juce::dontSendNotification);
+            looponpoints.setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
+            player1.clearSegmentPoints();
+        }
+    }
+
     if (button == &restartButton)
     {
         player1.restart();
+
     }
 
     if (button == &pauseButton)
@@ -176,11 +251,11 @@ void PlayerGui::buttonClicked(juce::Button* button)
 
     if (button == &startingpoint) {
         player1.setStartPoint(player1.getPosition());
-        statusBoxMessage("Point A set to: " + juce::String(player1.getStartPoint(), 2) + "s");
+        statusBoxMessage("Point A set to: " + juce::String(player1.getStartPoint()) + "s");
     }
     if (button == &endingpoint) {
         player1.setEndPoint(player1.getPosition());
-        statusBoxMessage("Point B set to: " + juce::String(player1.getEndPoint(), 2) + "s");
+        statusBoxMessage("Point B set to: " + juce::String(player1.getEndPoint()) + "s");
     }
     if (button == &Deletepoints) {
         player1.clearSegmentPoints();
@@ -199,7 +274,7 @@ void PlayerGui::buttonClicked(juce::Button* button)
             player1.setSegmentLooping(newState);
             if (newState) {
                 button->setColour(juce::TextButton::buttonColourId, juce::Colours::red);
-                statusBoxMessage("Segment looping ACTIVATED: " + juce::String(A, 2) + "s to " + juce::String(B, 2) + "s");
+                statusBoxMessage("Segment looping ACTIVATED: " + juce::String(A) + "s to " + juce::String(B) + "s");
             }
             else {
                 button->setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
@@ -213,6 +288,40 @@ void PlayerGui::buttonClicked(juce::Button* button)
             statusBoxMessage("Cannot activate segment loop: Set valid A and B points first (A < B).");
         }
         button->repaint();
+    }
+    if (button == &markerButton) {
+        double pos = player1.getPosition();
+        juce::String markerName = "Marker at " + juce::String(pos, 1) + "s";
+        player1.markers[player1.currentFileName].push_back(pos);
+        statusBoxMessage("Added " + markerName);
+        repaint();
+    }
+    if (button == &clearMarkers) {
+        player1.clearMarkers();
+        statusBoxMessage("All markers cleared.");
+        repaint();
+    }
+    if (button == &clear) {
+        model.clear();
+        player1.goEnd();
+        mytable.updateContent();
+    }
+    if (button == &removeSelected) {
+        int selectedRow = mytable.getSelectedRow();
+        if (selectedRow >= 0) {
+            juce::String filename = model.files[selectedRow].first;
+            if (filename == player1.currentFileName) {
+                player1.goEnd();
+                player1.currentFileName = "";
+                positionslider.setValue(0.0);
+            }
+            model.remove(selectedRow);
+            mytable.updateContent();
+            statusBoxMessage("Removed selected file from the list.");
+        }
+        else {
+            statusBoxMessage("No row selected to remove.");
+        }
     }
 }
 
@@ -238,6 +347,11 @@ void PlayerGui::sliderDragStarted(juce::Slider* slider)
     {
         isSliderDragging = true;
     }
+    // Add speed slider handling ****Sayed****
+    if (slider == &speedSlider)
+    {
+        player1.setSpeed((float)slider->getValue());
+    }
 }
 
 void PlayerGui::sliderDragEnded(juce::Slider* slider)
@@ -247,7 +361,7 @@ void PlayerGui::sliderDragEnded(juce::Slider* slider)
         isSliderDragging = false;
         double totalLength = player1.getLength();
         if (totalLength > 0.0) {
-            double newPosition = slider->getValue() * totalLength;
+            double newPosition = slider->getValue();
             player1.setPosition(newPosition);
 
             if (player1.getSegmentLooping()) {
@@ -262,13 +376,17 @@ void PlayerGui::sliderDragEnded(juce::Slider* slider)
 
 void PlayerGui::sliderValueChanged(juce::Slider* slider)
 {
-    if (slider == &volumeSlider) {
-        if (!player1.isMuted)
-            player1.setGain((float)slider->getValue());
+    if (slider == &volumeSlider && !player1.isMuted) {
+        player1.setGain((float)slider->getValue());
         player1.prevGain = slider->getValue();
     }
-
     if (slider == &positionslider) {
+        double totalLength = player1.getLength();
+        if (totalLength > 0.0) {
+            double newPosition = slider->getValue();
+            player1.setPosition(newPosition);
+
+        }
     }
 }
 
@@ -292,21 +410,42 @@ void PlayerGui::timerCallback()
             currentPosition = A;
         }
     }
-    else if (player1.isLooping() && totalLength > 0.0)
-    {
-        if (currentPosition >= totalLength - 0.01)
-        {
-            player1.setPosition(0.0);
-            currentPosition = 0.0;   
-        }
-    }
+
 
 
     if (totalLength > 0.0)
     {
         if (!isSliderDragging) {
-            double sliderValue = currentPosition / totalLength;
+            double sliderValue = currentPosition;
+            positionslider.setRange(0.0, totalLength, 1.0);
             positionslider.setValue(sliderValue, juce::dontSendNotification);
         }
     }
-} 
+}
+
+void PlayerGui::paintOverChildren(juce::Graphics& g) {
+    auto totalLength = player1.getLength();
+    if (totalLength <= 0.0)
+        return;
+
+    auto it = player1.markers.find(player1.currentFileName);
+    if (it == player1.markers.end())
+        return;
+
+    g.setColour(juce::Colours::orange);
+
+    auto sliderBounds = positionslider.getBounds();
+
+
+    for (auto& pos : it->second) {
+
+        double fraction = (pos) / totalLength;
+        fraction = juce::jlimit(0.0, 1.0, fraction);
+
+
+        int x = positionslider.getPositionOfValue(pos);
+
+
+        g.fillRect(x + 15, sliderBounds.getY(), 2, sliderBounds.getHeight());
+    }
+}
