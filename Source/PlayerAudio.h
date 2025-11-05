@@ -107,7 +107,13 @@ public:
     void setSpeed(float newSpeed);//***Sayed***
     float getSpeed() const;//***Sayed***
 
+    // *** MIXER ADDED BY SAYED ***
+    void setOutputGain(float gain) { outputGain = gain; }
+    float getOutputGain() const { return outputGain; }
+
 private:
     float currentSpeed = 1.0f; //***Sayed***
+    float outputGain = 1.0f; // used by mixer
+
 
 };
