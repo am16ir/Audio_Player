@@ -39,7 +39,7 @@ void info::set_filepath(juce::String fp) {
 }
 
 PlayerAudio::PlayerAudio()
-	: resampleSource(&transportSource, false)  // ***Sayed***
+    : resampleSource(&transportSource, false)  // ***Sayed***
 {
     formatManager.registerBasicFormats();
 }
@@ -58,7 +58,7 @@ void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 
 void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-	resampleSource.getNextAudioBlock(bufferToFill);//*** Eidted by Sayed***
+    resampleSource.getNextAudioBlock(bufferToFill);//*** Eidted by Sayed***
 }
 
 void PlayerAudio::releaseResources()
@@ -80,7 +80,7 @@ info PlayerAudio::LoadFile(const juce::File& file) {
             transportSource.setSource(nullptr);
             readerSource.reset();
 
-			
+            // ***Sayed***
             readerSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
 
 
@@ -91,7 +91,7 @@ info PlayerAudio::LoadFile(const juce::File& file) {
                 nullptr,
                 reader->sampleRate);
 
-			resampleSource.setResamplingRatio(currentSpeed); // ***Sayed***
+            resampleSource.setResamplingRatio(currentSpeed); // ***Sayed***
 
             currentFileName = file.getFileName();
             transportSource.start();
@@ -191,7 +191,7 @@ void PlayerAudio::setSpeed(float newSpeed)
 {
     currentSpeed = juce::jlimit(0.25f, 4.0f, newSpeed);
     resampleSource.setResamplingRatio(currentSpeed);
-    
+
 }
 
 float PlayerAudio::getSpeed() const

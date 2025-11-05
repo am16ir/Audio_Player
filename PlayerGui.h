@@ -39,41 +39,103 @@ public:
 
 };
 
-// ****Sayed**** - start of WaveformDisplay class
+
+//////////************* class wave Sayed  ***************/////////////////////
 class WaveformDisplay : public juce::Component,
-    public juce::ChangeListener,
-    public juce::Timer
+    private juce::ChangeListener,
+    private juce::Timer
 {
 public:
-    WaveformDisplay(PlayerAudio& audio);
-    ~WaveformDisplay() override;
+    WaveformDisplay(PlayerAudio& audio, juce::AudioFormatManager& formatManager)
+        : audioPlayer(audio),
+        thumbnailCache(5),
+        thumbnail(512, formatManager, thumbnailCache)
+    {
+        thumbnail.addChangeListener(this);
+        startTimer(40);
+    }
 
-    void paint(juce::Graphics& g) override;
-    void resized() override {}
+    void paint(juce::Graphics& g) override
+    {
+        g.fillAll(juce::Colours::darkgrey);
+        g.setColour(juce::Colours::lightgrey);
 
-    void loadFile(const juce::File& file);
-    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
-    void timerCallback() override;
-    void mouseDown(const juce::MouseEvent& event) override;
+        if (thumbnail.getTotalLength() > 0.0)
+        {
+            auto audioLength = thumbnail.getTotalLength();
+            auto thumbArea = getLocalBounds();
+
+            g.setColour(juce::Colours::lightblue);
+            thumbnail.drawChannels(g, thumbArea, 0.0, audioLength, 1.0f);
+
+            auto audioPosition = audioPlayer.getPosition();
+            auto drawPosition = (audioPosition / audioLength) * thumbArea.getWidth();
+
+            g.setColour(juce::Colours::red);
+            g.drawLine(drawPosition, 0, drawPosition, getHeight(), 2.0f);
+
+            g.setColour(juce::Colours::white);
+            g.drawText(formatTime(audioPosition) + " / " + formatTime(audioLength),
+                getLocalBounds(), juce::Justification::centredBottom);
+        }
+        else
+        {
+            g.setColour(juce::Colours::white);
+            g.drawText("No audio file loaded", getLocalBounds(), juce::Justification::centred);
+        }
+    }
+
+    void setFile(const juce::File& file)
+    {
+        thumbnail.setSource(new juce::FileInputSource(file));
+    }
+
+    void mouseDown(const juce::MouseEvent& event) override
+    {
+        if (thumbnail.getTotalLength() > 0.0)
+        {
+            auto clickPosition = event.position.x;
+            auto thumbWidth = getWidth();
+            auto newPosition = (clickPosition / thumbWidth) * thumbnail.getTotalLength();
+            audioPlayer.setPosition(newPosition);
+        }
+    }
 
 private:
-    PlayerAudio& playerAudio;
-    juce::AudioFormatManager formatManager;
-    juce::AudioThumbnailCache thumbnailCache{ 512 };
+    PlayerAudio& audioPlayer;
+    juce::AudioThumbnailCache thumbnailCache;
     juce::AudioThumbnail thumbnail;
 
-    void drawTimeMarkers(juce::Graphics& g, juce::Rectangle<float> area);
+    void changeListenerCallback(juce::ChangeBroadcaster* source) override
+    {
+        if (source == &thumbnail)
+            repaint();
+    }
+
+    void timerCallback() override
+    {
+        repaint();
+    }
+
+    juce::String formatTime(double seconds)
+    {
+        auto minutes = (int)(seconds / 60);
+        auto secs = (int)seconds % 60;
+        return juce::String::formatted("%02d:%02d", minutes, secs);
+    }
 };
 
-///***Sayed*** - End of WaveformDisplay class
+
+///////// end of wave Sayed  ////////////////////////
+
+
 
 class PlayerGui : public juce::AudioAppComponent,
     public juce::Button::Listener,
-    public juce::Slider::Listener,
-    // ****Sayed**** - Added Timer inheritance for continuous UI updates
-    public juce::Timer
+    public juce::Slider::Listener
 {
 private:
+
     PlayerAudio player1;
     juce::TextButton loadButton{ "Load Files" };
     juce::TextButton restartButton{ "Restart" };
@@ -86,36 +148,32 @@ private:
     juce::TextButton mute{ "Mute" };
     juce::TextEditor statusBox;
     juce::Slider volumeSlider;
-  
-    juce::Slider speedSlider;  // ****Sayed**** 
-
-    
-    juce::Label currentTimeLabel;  // ****Sayed**** 
-    juce::Label totalTimeLabel;  // ****Sayed**** 
-    WaveformDisplay waveformDisplay;  // ****Sayed**** 
-
+    juce::Slider speedSlider; // ****Sayed****
     juce::TableListBox mytable;
     tablemodel model;
     std::unique_ptr<juce::FileChooser> fileChooser;
+
+    WaveformDisplay waveformDisplay; // ************Sayed***************
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGui)
 
 public:
     PlayerGui();
-    ~PlayerGui() override;
+    ~PlayerGui()override;
 
-    void prepareToPlay(int samplesPerBlockExpected, double sampleRate) override;
-    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
-    void releaseResources() override;
+
+    void prepareToPlay(int samplesPerBlockExpected, double sampleRate)override;
+    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)override;
+    void releaseResources()override;
 
     void paint(juce::Graphics& g) override;
     void resized() override;
 
-    void buttonClicked(juce::Button* button) override;
-    void sliderValueChanged(juce::Slider* slider) override;
-    void timerCallback() override;  // ****Sayed**** 
+    void buttonClicked(juce::Button* button)override;
+    void sliderValueChanged(juce::Slider* slider)override;
 
     void statusBoxMessage(const juce::String& message);
-    void updateProgressDisplay();  // ****Sayed**** 
-    juce::String formatTime(double seconds);  // ****Sayed**** 
+
+
 };

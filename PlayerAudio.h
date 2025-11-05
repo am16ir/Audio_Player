@@ -58,6 +58,9 @@ public:
     PlayerAudio();
     ~PlayerAudio();
 
+	juce::AudioFormatManager& getFormatManager() { return formatManager; }//////*****Sayed to Wave
+
+
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill);
     void releaseResources();
@@ -84,10 +87,10 @@ public:
     void setLooping(bool shouldLoop);
     bool isLooping() const;
 
-	void setSpeed(float newSpeed);//***Sayed***
-	float getSpeed() const;//***Sayed***
+    void setSpeed(float newSpeed);//***Sayed***
+    float getSpeed() const;//***Sayed***
 
 private:
-	float currentSpeed = 1.0f; //***Sayed***
+    float currentSpeed = 1.0f; //***Sayed***
 
 };

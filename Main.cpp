@@ -31,7 +31,7 @@ private:
         {
             setUsingNativeTitleBar(true);
             setContentOwned(new PlayerGui(), true);
-            centreWithSize(900, 600);
+            centreWithSize(850, 500);
             setVisible(true);
         }
 
