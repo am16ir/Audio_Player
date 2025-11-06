@@ -1,6 +1,7 @@
 #pragma once
 #include <JuceHeader.h>
 #include <unordered_map>
+#include <map>
 class info {
     juce::String filename;
     double duration = 0;
@@ -51,6 +52,9 @@ private:
 
     juce::ResamplingAudioSource resampleSource{ &transportSource, false }; // ***Sayed***
 
+    float outputGain = 1.0f; // used by mixer
+    double speed = 1.0; // default playback speed (1.0 = normal)
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)
 
@@ -58,7 +62,7 @@ public:
     PlayerAudio();
     ~PlayerAudio();
 
-	juce::AudioFormatManager& getFormatManager() { return formatManager; }//////*****Sayed to Wave
+    juce::AudioFormatManager& getFormatManager() { return formatManager; }//////*****Sayed to Wave
 
 
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
@@ -67,7 +71,12 @@ public:
 
     float prevGain;
     std::unordered_map<juce::String, float>songs;
+    std::unordered_map<juce::String, std::vector<double>> markers;
     juce::String currentFileName;
+
+    double startPoint = 0.0;
+    double endPoint = 0.0;
+    bool isSegmentLooping = false;
 
 
     info LoadFile(const juce::File& file);
@@ -87,10 +96,25 @@ public:
     void setLooping(bool shouldLoop);
     bool isLooping() const;
 
-    void setSpeed(float newSpeed);//***Sayed***
-    float getSpeed() const;//***Sayed***
+    void setStartPoint(double pos);
+    void setEndPoint(double pos);
+    void clearSegmentPoints();
+    void setSegmentLooping(bool shouldLoop);
+    double getStartPoint() const { return startPoint; }
+    double getEndPoint() const { return endPoint; }
+    bool getSegmentLooping() const { return isSegmentLooping; }
 
-private:
-    float currentSpeed = 1.0f; //***Sayed***
+    void clearMarkers();
+
+    void setSpeed(double ratio);   // New function
+    double getSpeed() const { return speed; }
+
+   
+
+    // *** MIXER ADDED BY SAYED ***
+    void setOutputGain(float gain) { outputGain = gain; }
+    float getOutputGain() const { return outputGain; }
+
+
 
 };

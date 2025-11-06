@@ -38,10 +38,12 @@ void info::set_filepath(juce::String fp) {
     filepath = fp;
 }
 
-PlayerAudio::PlayerAudio()
-    : resampleSource(&transportSource, false)  // ***Sayed***
+PlayerAudio::PlayerAudio() 
 {
     formatManager.registerBasicFormats();
+    resampleSource.setResamplingRatio(speed);///sayed
+
+
 }
 
 PlayerAudio::~PlayerAudio() {
@@ -50,20 +52,21 @@ PlayerAudio::~PlayerAudio() {
     readerSource.reset();
 }
 
-
 void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
+    transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
     resampleSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
 void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    resampleSource.getNextAudioBlock(bufferToFill);//*** Eidted by Sayed***
+    resampleSource.getNextAudioBlock(bufferToFill);
 }
 
 void PlayerAudio::releaseResources()
 {
-    resampleSource.releaseResources();//*** Eidted by Sayed***
+    resampleSource.releaseResources();
+    transportSource.releaseResources();
 }
 
 info PlayerAudio::LoadFile(const juce::File& file) {
@@ -80,10 +83,8 @@ info PlayerAudio::LoadFile(const juce::File& file) {
             transportSource.setSource(nullptr);
             readerSource.reset();
 
-            // ***Sayed***
+            // Create new reader source
             readerSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
-
-
 
             // Attach safely
             transportSource.setSource(readerSource.get(),
@@ -91,10 +92,13 @@ info PlayerAudio::LoadFile(const juce::File& file) {
                 nullptr,
                 reader->sampleRate);
 
-            resampleSource.setResamplingRatio(currentSpeed); // ***Sayed***
 
             currentFileName = file.getFileName();
             transportSource.start();
+
+            startPoint = 0.0;
+            endPoint = transportSource.getLengthInSeconds();
+            isSegmentLooping = false;
 
             myinfo.set_filename(file.getFileName());
             myinfo.set_metadata(reader->metadataValues);
@@ -116,7 +120,7 @@ void PlayerAudio::play() {
 }
 
 void PlayerAudio::complete(juce::String name) {
-    if (songs.count(name)==0)
+    if (songs.count(name) == 0)
         transportSource.setPosition(0.0);
     else
         transportSource.setPosition(songs[name]);
@@ -186,15 +190,55 @@ void PlayerAudio::mute() {
 }
 
 
-///// ******** Sayed ******** //////
-void PlayerAudio::setSpeed(float newSpeed)
-{
-    currentSpeed = juce::jlimit(0.25f, 4.0f, newSpeed);
-    resampleSource.setResamplingRatio(currentSpeed);
-
+void PlayerAudio::setStartPoint(double pos) {
+    double totalLength = getLength();
+    if (pos >= 0.0 && pos < totalLength) {
+        startPoint = pos;
+        if (endPoint <= startPoint || endPoint == 0.0) {
+            endPoint = totalLength;
+        }
+        if (getPosition() < startPoint) setPosition(startPoint);
+    }
 }
 
-float PlayerAudio::getSpeed() const
-{
-    return currentSpeed;
+void PlayerAudio::setEndPoint(double pos) {
+    double totalLength = getLength();
+    if (pos > startPoint && pos <= totalLength) {
+        endPoint = pos;
+        if (getPosition() >= endPoint) setPosition(startPoint);
+    }
+    else if (pos <= startPoint) {
+        endPoint = totalLength;
+    }
 }
+
+void PlayerAudio::clearSegmentPoints() {
+    startPoint = 0.0;
+    endPoint = getLength();
+    isSegmentLooping = false;
+}
+
+void PlayerAudio::setSegmentLooping(bool shouldLoop) {
+    isSegmentLooping = shouldLoop;
+    if (shouldLoop && getLength() > 0.0) {
+        if (getPosition() < startPoint || getPosition() >= endPoint) {
+            setPosition(startPoint);
+        }
+    }
+}
+
+void PlayerAudio::clearMarkers() {
+    markers[currentFileName].clear();
+}
+
+void PlayerAudio::setSpeed(double ratio)
+{
+    if (ratio < 0.5) ratio = 0.5;
+    if (ratio > 2.0) ratio = 2.0;
+
+    speed = ratio;
+    resampleSource.setResamplingRatio(speed);
+
+    DBG("PlayerAudio::setSpeed() called. speed = " + juce::String(speed));
+}
+
