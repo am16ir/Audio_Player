@@ -1,13 +1,12 @@
 #include <JuceHeader.h>
 #include "PlayerGui.h"
-#include "PlayerAudio.h"
 
 // Our application class
 class SimpleAudioPlayer : public juce::JUCEApplication
 {
 public:
-    const juce::String getApplicationName() override { return "Simple Audio Player"; }
-    const juce::String getApplicationVersion() override { return "1.0"; }
+    const juce::String getApplicationName() override { return "Spotify++ Dual Player"; }
+    const juce::String getApplicationVersion() override { return "3.2"; }
 
     void initialise(const juce::String&) override
     {
@@ -16,11 +15,10 @@ public:
 
     void shutdown() override
     {
-        mainWindow = nullptr; // Clean up
+        mainWindow = nullptr;
     }
 
 private:
-    // The main window of the app
     class MainWindow : public juce::DocumentWindow
     {
     public:
@@ -31,14 +29,10 @@ private:
         {
             setUsingNativeTitleBar(true);
 
-            // Create PlayerAudio instance (owned by MainWindow)
-            playerAudio = std::make_unique<PlayerAudio>();
+            auto dualPlayerComponent = std::make_unique<DualPlayerComponent>();
+            setContentOwned(dualPlayerComponent.release(), true);
 
-            // Create GUI and pass PlayerAudio by reference
-            setContentOwned(new PlayerGui(*playerAudio), true);
-
-            centreWithSize(1000, 500);
-            setResizable(true, true);
+            centreWithSize(1400, 600); // Double width for two players
             setVisible(true);
         }
 
@@ -48,11 +42,53 @@ private:
         }
 
     private:
-        std::unique_ptr<PlayerAudio> playerAudio;
+        class DualPlayerComponent : public juce::Component
+        {
+        public:
+            DualPlayerComponent()
+            {
+                // Create two PlayerGui instances
+                player1 = std::make_unique<PlayerGui>();
+                player2 = std::make_unique<PlayerGui>();
+
+                addAndMakeVisible(player1.get());
+                addAndMakeVisible(player2.get());
+            }
+
+            void resized() override
+            {
+                auto area = getLocalBounds();
+
+                int spacing = 50;
+
+
+                int playerWidth = (getWidth() - spacing) / 2;
+
+                player1->setBounds(area.removeFromLeft(playerWidth));
+
+                area.removeFromLeft(spacing);
+
+                player2->setBounds(area);
+            }
+
+            void paint(juce::Graphics& g) override
+            {
+                g.fillAll(juce::Colour(0xff2d2d2d));
+
+                int spacing = 20;
+                int playerWidth = (getWidth() - spacing) / 2;
+                auto spacingArea = juce::Rectangle<int>(playerWidth, 0, spacing, getHeight());
+                g.setColour(juce::Colour(0x4285F4));
+                g.fillRect(spacingArea);
+            }
+
+        private:
+            std::unique_ptr<PlayerGui> player1;
+            std::unique_ptr<PlayerGui> player2;
+        };
     };
 
     std::unique_ptr<MainWindow> mainWindow;
 };
 
-// This macro starts the app
 START_JUCE_APPLICATION(SimpleAudioPlayer)

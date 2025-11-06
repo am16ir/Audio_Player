@@ -1,15 +1,21 @@
-﻿#include "PlayerGui.h"
+#include "PlayerGui.h"
+#include <vector>
+using namespace std;
 
-PlayerGui::PlayerGui(PlayerAudio& playerRef)
-    : player(playerRef)
+
+PlayerGui::PlayerGui()
+    : waveformDisplay(player1, player1.getFormatManager()) // *****Sayed******
+
 {
-    // Buttons
-    for (auto* b : { &loadButton, &restartButton, &pauseButton, &playButton, &goEndButton, &loopButton, &muteButton })
+    for (auto* btn : { &loadButton, &restartButton , &pauseButton ,&goEndButton ,&playButton ,
+        &forward ,&backward,&loopButton,&mute,&startingpoint,&endingpoint,&Deletepoints,&looponpoints,
+        &markerButton,&clearMarkers,&clear,&removeSelected,& nextButton,& previousButton })
     {
-        b->addListener(this);
-        addAndMakeVisible(b);
-        b->setEnabled(true);
+        btn->addListener(this);
+        addAndMakeVisible(btn);
     }
+    mute.setClickingTogglesState(true);
+    looponpoints.setClickingTogglesState(true);
 
     // Volume slider
     volumeSlider.setRange(0.0, 1.0, 0.01);
@@ -17,231 +23,433 @@ PlayerGui::PlayerGui(PlayerAudio& playerRef)
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
 
-    // Speed slider (0.5x - 2.0x)
-    speedSlider.setRange(0.5, 2.0, 0.01);
+    // Speed slider
+    speedSlider.setRange(0.25, 4.0, 0.01);
     speedSlider.setValue(1.0);
     speedSlider.addListener(this);
     speedSlider.setTextValueSuffix("x");
     addAndMakeVisible(speedSlider);
 
-    // Position slider
-    positionSlider.setRange(0.0, 1.0, 0.0001);
-    positionSlider.setValue(0.0);
-    positionSlider.addListener(this);
-    addAndMakeVisible(positionSlider);
 
-    timeLabel.setText("00:00 / 00:00", juce::dontSendNotification);
-    addAndMakeVisible(timeLabel);
 
-    // Status box
+    addAndMakeVisible(waveformDisplay);	// ******Sayed******
+
+    setSize(1200, 850);//***Editing by sayed
+    setAudioChannels(0, 2);
+
     statusBox.setMultiLine(true);
     statusBox.setReadOnly(true);
     statusBox.setScrollbarsShown(true);
     addAndMakeVisible(statusBox);
 
-    setSize(1000, 500);
+    // position slider 
+    positionslider.setRange(0.0, 1, 0.01);
+    positionslider.setValue(0.0);
+    positionslider.addListener(this);
+    addAndMakeVisible(positionslider);
 
-    // Start audio (no inputs, 2 outputs)
-    setAudioChannels(0, 2);
+    // Table
+    mytable.getHeader().addColumn("Filename", 1, 180);
+    mytable.getHeader().addColumn("Duration", 2, 180);
+    mytable.setModel(&model);
+    addAndMakeVisible(mytable);
+    model.doubleClick = [this](juce::String filename) {
+        info fileinfo = player1.LoadFile(juce::File(filename));
+        statusBox.clear();
 
-    // connect logging
-    player.logBox = [this](const juce::String& msg) { statusBoxMessage(msg); };
+        statusBoxMessage("FILE: " + fileinfo.get_filename());
+        statusBoxMessage(fileinfo.get_duration());
+        player1.complete(fileinfo.get_filename());
 
-    // timer for updating position and time
-    startTimerHz(10);
+        looponpoints.setToggleState(false, juce::dontSendNotification);
+        looponpoints.setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
+        player1.clearSegmentPoints();
+        };
 
-    // defaults
-    isMutedLocal = player.isMuted();
-    // ensure player gain matches slider initially
-    player.setGain((float)volumeSlider.getValue());
+    startTimer(50);
 }
+
 
 PlayerGui::~PlayerGui()
 {
     shutdownAudio();
 }
 
-void PlayerGui::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
-{
-    player.prepareToPlay(samplesPerBlockExpected, sampleRate);
-}
 
-void PlayerGui::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
-{
-    player.getNextAudioBlock(bufferToFill);
-}
-
-void PlayerGui::releaseResources()
-{
-    player.releaseResources();
-}
-
-void PlayerGui::paint(juce::Graphics& g)
-{
-    g.fillAll(juce::Colours::darkgrey);
-}
 
 void PlayerGui::resized()
 {
     int y = 20;
-    int btnW = 90;
-    int btnH = 40;
-    int gap = 20;
-    int x = 20;
+    loadButton.setBounds(20, y, 80, 40);
+    backward.setBounds(120, y, 80, 40);
+    forward.setBounds(120, 70, 80, 40);
+    pauseButton.setBounds(220, y, 80, 40);
+    playButton.setBounds(220, 70, 80, 40);
+    restartButton.setBounds(320, y, 80, 40);
+    goEndButton.setBounds(320, 70, 80, 40);
+    loopButton.setBounds(420, y, 80, 40);
+    mute.setBounds(420, 70, 80, 40);
+    startingpoint.setBounds(520, y, 80, 40);
+    endingpoint.setBounds(520, 70, 80, 40);
+    looponpoints.setBounds(630, 20, 80, 40);
+    Deletepoints.setBounds(630, 70, 80, 40);
+    markerButton.setBounds(730, 20, 80, 40);
+    clearMarkers.setBounds(730, 70, 80, 40);
 
-    loadButton.setBounds(x, y, btnW, btnH); x += btnW + 10;
-    restartButton.setBounds(x, y, btnW, btnH); x += btnW + 10;
-    pauseButton.setBounds(x, y, btnW, btnH); x += btnW + 10;
-    playButton.setBounds(x, y, btnW, btnH); x += btnW + 10;
-    goEndButton.setBounds(x, y, btnW, btnH); x += btnW + 10;
-    loopButton.setBounds(x, y, btnW, btnH); x += btnW + 10;
-    muteButton.setBounds(x, y, btnW, btnH);
+  
 
-    // sliders and status area
-    volumeSlider.setBounds(20, 100, getWidth() - 40, 30);
-    speedSlider.setBounds(20, 140, getWidth() - 40, 30);
+    waveformDisplay.setBounds(20, 130, getWidth() - 60, 80);// ****Sayed****
 
-    positionSlider.setBounds(20, 180, getWidth() - 160, 24);
-    timeLabel.setBounds(getWidth() - 130, 180, 110, 24);
+    volumeSlider.setBounds(20, 220, getWidth() - 60, 30);
+    positionslider.setBounds(20, 260, getWidth() - 60, 30);
+    speedSlider.setBounds(20, 300, getWidth() - 60, 30);///sayed
 
-    statusBox.setBounds(20, 220, getWidth() - 40, getHeight() - 240);
+
+    statusBox.setBounds(20, 400, 350, 70);
+    mytable.setBounds(400, 400, 360, 150);
+    clear.setBounds(400, 350, 80, 40);
+    removeSelected.setBounds(500, 350, 100, 40);
+
+    previousButton.setBounds(620, 350, 80, 40);
+    nextButton.setBounds(720, 350, 80, 40);
+
+
+
+}
+
+void PlayerGui::paint(juce::Graphics& g)
+{
+    g.fillAll(juce::Colours::lightblue);
+    g.setColour(juce::Colours::white);
 }
 
 void PlayerGui::buttonClicked(juce::Button* button)
 {
     if (button == &loadButton)
     {
-        fileChooser = std::make_unique<juce::FileChooser>("Select audio files...", juce::File{}, "*.wav;*.mp3;*.flac;*.aiff");
-        fileChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+        juce::FileChooser chooser("Select audio files...",
+            juce::File{},
+            "*.wav;*.mp3");
+
+        fileChooser = std::make_unique<juce::FileChooser>(
+            "Select an audio file...",
+            juce::File{},
+            "*.wav;*.mp3");
+
+        fileChooser->launchAsync(
+            juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
             [this](const juce::FileChooser& fc)
             {
                 auto file = fc.getResult();
                 if (file.existsAsFile()) {
                     statusBox.clear();
-                    bool ok = player.LoadFile(file);
-                    if (ok)
-                    {
-                        // set initial gain & speed from UI
-                        player.setGain((float)volumeSlider.getValue());
-                        player.setSpeed(speedSlider.getValue());
-                        // ensure muted state is consistent
-                        if (isMutedLocal)
-                            player.setMute(true);
-                        else
-                            player.setMute(false);
 
-                        player.play();
-                        statusBoxMessage("Loaded: " + file.getFileName());
-                    }
-                    else
-                        statusBoxMessage("Failed to load file.");
+
+                    info fileinfo = player1.LoadFile(file);
+                    statusBoxMessage("FILE: " + fileinfo.get_filename());
+                    statusBoxMessage(fileinfo.get_duration());
+                    statusBoxMessage(fileinfo.get_metadata());
+
+                    //  waveform Sayed
+                    waveformDisplay.setFile(file);
+
+                    model.files.push_back({ fileinfo.get_path(),fileinfo.get_duration() });
+                    mytable.updateContent();
+
+                    looponpoints.setToggleState(false, juce::dontSendNotification);
+                    looponpoints.setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
+                    player1.clearSegmentPoints();
+                }
+                else {
+                    statusBoxMessage("Choose Again! ");
                 }
             });
     }
-    else if (button == &restartButton)
-    {
-        player.restart();
-    }
-    else if (button == &pauseButton)
-    {
-        player.pause();
-    }
-    else if (button == &playButton)
-    {
-        player.play();
-    }
-    else if (button == &goEndButton)
-    {
-        player.goEnd();
-    }
-    else if (button == &loopButton)
-    {
-        bool newState = !player.isLooping();
-        player.setLooping(newState);
-        loopButton.setColour(juce::TextButton::buttonColourId, newState ? juce::Colours::blue : juce::Colours::grey);
-        loopButton.setButtonText(newState ? "Loop: ON" : "Loop: OFF");
-    }
-    else if (button == &muteButton)
-    {
-        // Toggle mute. Before muting, save current slider volume into PlayerAudio
-        float currentVol = (float)volumeSlider.getValue();
-        player.setGain(currentVol); // save lastGainBeforeMute inside PlayerAudio
 
-        isMutedLocal = !isMutedLocal;
-        player.setMute(isMutedLocal);
 
-        // Update UI text/color
-        muteButton.setButtonText(isMutedLocal ? "Unmute" : "Mute");
-        muteButton.setColour(juce::TextButton::buttonColourId, isMutedLocal ? juce::Colours::red : juce::Colours::grey);
+
+    if (button == &restartButton)
+    {
+        player1.restart();
+
+    }
+
+    if (button == &pauseButton)
+    {
+        player1.pause();
+    }
+    if (button == &playButton) {
+        player1.play();
+    }
+
+    if (button == &goEndButton) {
+        player1.goEnd();
+    }
+    if (button == &forward) {
+        player1.forward();
+    }
+    if (button == &backward) {
+        player1.backward();
+    }
+    if (button == &loopButton)
+    {
+        bool newState = !player1.isLooping();
+        player1.setLooping(newState);
+
+        if (newState) {
+            button->setColour(juce::TextButton::buttonColourId, juce::Colours::darkblue);
+        }
+        else {
+            button->setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
+        }
+        button->repaint();
+    }
+    if (button == &mute) {
+        player1.isMuted = mute.getToggleState();
+        player1.mute();
+        if (player1.isMuted)
+            mute.setButtonText("Unmute");
+        else
+            mute.setButtonText("Mute");
+    }
+
+    if (button == &startingpoint) {
+        player1.setStartPoint(player1.getPosition());
+        statusBoxMessage("Point A set to: " + juce::String(player1.getStartPoint()) + "s");
+    }
+    if (button == &endingpoint) {
+        player1.setEndPoint(player1.getPosition());
+        statusBoxMessage("Point B set to: " + juce::String(player1.getEndPoint()) + "s");
+    }
+    if (button == &Deletepoints) {
+        player1.clearSegmentPoints();
+        looponpoints.setToggleState(false, juce::dontSendNotification);
+        looponpoints.setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
+        statusBoxMessage("Segment loop points cleared.");
+    }
+    if (button == &looponpoints) {
+        bool newState = looponpoints.getToggleState();
+
+        double A = player1.getStartPoint();
+        double B = player1.getEndPoint();
+        double L = player1.getLength();
+
+        if (B > A && L > 0.0) {
+            player1.setSegmentLooping(newState);
+            if (newState) {
+                button->setColour(juce::TextButton::buttonColourId, juce::Colours::red);
+                statusBoxMessage("Segment looping ACTIVATED: " + juce::String(A) + "s to " + juce::String(B) + "s");
+            }
+            else {
+                button->setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
+                statusBoxMessage("Segment looping DEACTIVATED.");
+            }
+        }
+        else {
+            player1.setSegmentLooping(false);
+            looponpoints.setToggleState(false, juce::dontSendNotification);
+            button->setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
+            statusBoxMessage("Cannot activate segment loop: Set valid A and B points first (A < B).");
+        }
+        button->repaint();
+    }
+    if (button == &markerButton) {
+        double pos = player1.getPosition();
+        juce::String markerName = "Marker at " + juce::String(pos, 1) + "s";
+        player1.markers[player1.currentFileName].push_back(pos);
+        statusBoxMessage("Added " + markerName);
+        repaint();
+    }
+    if (button == &clearMarkers) {
+        player1.clearMarkers();
+        statusBoxMessage("All markers cleared.");
+        repaint();
+    }
+    if (button == &clear) {
+        model.clear();
+        player1.goEnd();
+        mytable.updateContent();
+    }
+    if (button == &removeSelected) {
+        int selectedRow = mytable.getSelectedRow();
+        if (selectedRow >= 0) {
+            juce::String filename = model.files[selectedRow].first;
+            if (filename == player1.currentFileName) {
+                player1.goEnd();
+                player1.currentFileName = "";
+                positionslider.setValue(0.0);
+            }
+            model.remove(selectedRow);
+            mytable.updateContent();
+            statusBoxMessage("Removed selected file from the list.");
+        }
+        else {
+            statusBoxMessage("No row selected to remove.");
+        }
+    }
+    if (button == &nextButton || button == &previousButton)
+    {
+        int currentRow = mytable.getSelectedRow();
+        int totalRows = model.getNumRows();
+        int newRow = currentRow;
+
+        if (totalRows == 0) {
+            statusBoxMessage("Table is empty. Load files first.");
+            return;
+        }
+
+        if (currentRow == -1) {
+            newRow = 0;
+        }
+        else if (button == &nextButton) {
+            newRow = (currentRow + 1) % totalRows;
+        }
+        else if (button == &previousButton) {
+            newRow = (currentRow - 1 + totalRows) % totalRows;
+        }
+
+        if (newRow != currentRow)
+        {
+            mytable.selectRow(newRow, true, true);
+
+            juce::String filenameToLoad = model.files[newRow].first;
+            info fileinfo = player1.LoadFile(juce::File(filenameToLoad));
+
+            statusBox.clear();
+            statusBoxMessage("FILE: " + fileinfo.get_filename());
+            statusBoxMessage(fileinfo.get_duration());
+            player1.complete(fileinfo.get_filename());
+
+            waveformDisplay.setFile(juce::File(filenameToLoad));
+            looponpoints.setToggleState(false, juce::dontSendNotification);
+            looponpoints.setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
+            player1.clearSegmentPoints();
+        }
     }
 }
 
+
+void PlayerGui::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
+{
+    player1.prepareToPlay(samplesPerBlockExpected, sampleRate);
+}
+
+void PlayerGui::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
+{
+    player1.getNextAudioBlock(bufferToFill);
+}
+
+void PlayerGui::releaseResources()
+{
+    player1.releaseResources();
+}
+
+void PlayerGui::sliderDragStarted(juce::Slider* slider)
+{
+    if (slider == &positionslider)
+    {
+        isSliderDragging = true;
+    }
+    
+}
+
+void PlayerGui::sliderDragEnded(juce::Slider* slider)
+{
+    if (slider == &positionslider)
+    {
+        isSliderDragging = false;
+        double totalLength = player1.getLength();
+        if (totalLength > 0.0) {
+            double newPosition = slider->getValue();
+            player1.setPosition(newPosition);
+
+            if (player1.getSegmentLooping()) {
+                if (newPosition < player1.getStartPoint() || newPosition >= player1.getEndPoint()) {
+                    player1.setPosition(player1.getStartPoint());
+                }
+            }
+        }
+    }
+}
+
+
 void PlayerGui::sliderValueChanged(juce::Slider* slider)
 {
-    if (slider == &volumeSlider)
-    {
-        float val = (float)volumeSlider.getValue();
-
-        // If currently muted and user moves slider > 0, unmute automatically
-        if (isMutedLocal && val > 0.0f)
-        {
-            isMutedLocal = false;
-            player.setMute(false);                    // IMPORTANT: unmute in PlayerAudio
-            muteButton.setButtonText("Mute");
-            muteButton.setColour(juce::TextButton::buttonColourId, juce::Colours::grey);
-        }
-
-        // Always update saved gain (PlayerAudio will apply if not muted)
-        player.setGain(val);
+    if (slider == &volumeSlider && !player1.isMuted) {
+        player1.setGain((float)slider->getValue());
+        player1.prevGain = slider->getValue();
     }
-    else if (slider == &speedSlider)
-    {
-        double s = speedSlider.getValue();
-        player.setSpeed(s);
-    }
-    else if (slider == &positionSlider)
-    {
-        // Seeking: only update position while user is dragging
-        if (positionSlider.isMouseButtonDown())
-        {
-            double frac = positionSlider.getValue();
-            double len = player.getLength();
-            if (len > 0.0)
-                player.setPosition(frac * len);
+    if (slider == &positionslider) {
+        double totalLength = player1.getLength();
+        if (totalLength > 0.0) {
+            double newPosition = slider->getValue();
+            player1.setPosition(newPosition);
+
         }
     }
+
+    if (slider == &speedSlider)
+    {
+        player1.setSpeed(speedSlider.getValue());
+    }
+}
+
+void PlayerGui::statusBoxMessage(const juce::String& message) {
+    statusBox.insertTextAtCaret(message + "\n");
 }
 
 void PlayerGui::timerCallback()
 {
-    if (!player.isLoaded()) return;
+    double currentPosition = player1.getPosition();
+    double totalLength = player1.getLength();
 
-    double len = player.getLength();
-    double pos = player.getPosition();
-
-    if (len > 0.0)
+    if (player1.getSegmentLooping() && totalLength > 0.0)
     {
-        double frac = pos / len;
-        positionSlider.setValue(frac, juce::dontSendNotification);
+        double A = player1.getStartPoint();
+        double B = player1.getEndPoint();
 
-        int totalSec = (int)std::round(len);
-        int posSec = (int)std::round(pos);
+        if (currentPosition >= B)
+        {
+            player1.setPosition(A);
+            currentPosition = A;
+        }
+    }
 
-        auto formatTime = [](int seconds) {
-            int h = seconds / 3600;
-            int m = (seconds / 60) % 60;
-            int s = seconds % 60;
-            if (h > 0)
-                return juce::String(h) + ":" + juce::String(m).paddedLeft('0', 2) + ":" + juce::String(s).paddedLeft('0', 2);
-            else
-                return juce::String(m) + ":" + juce::String(s).paddedLeft('0', 2);
-            };
 
-        timeLabel.setText(formatTime(posSec) + " / " + formatTime(totalSec), juce::dontSendNotification);
+
+    if (totalLength > 0.0)
+    {
+        if (!isSliderDragging) {
+            double sliderValue = currentPosition;
+            positionslider.setRange(0.0, totalLength, 1.0);
+            positionslider.setValue(sliderValue, juce::dontSendNotification);
+        }
     }
 }
 
-void PlayerGui::statusBoxMessage(const juce::String& message)
-{
-    statusBox.insertTextAtCaret(message + "\n");
+void PlayerGui::paintOverChildren(juce::Graphics& g) {
+    auto totalLength = player1.getLength();
+    if (totalLength <= 0.0)
+        return;
+
+    auto it = player1.markers.find(player1.currentFileName);
+    if (it == player1.markers.end())
+        return;
+
+    g.setColour(juce::Colours::orange);
+
+    auto sliderBounds = positionslider.getBounds();
+
+
+    for (auto& pos : it->second) {
+
+        double fraction = (pos) / totalLength;
+        fraction = juce::jlimit(0.0, 1.0, fraction);
+
+
+        int x = positionslider.getPositionOfValue(pos);
+
+
+        g.fillRect(x + 15, sliderBounds.getY(), 2, sliderBounds.getHeight());
+    }
 }
