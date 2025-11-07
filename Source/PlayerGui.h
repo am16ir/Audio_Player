@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <JuceHeader.h>
 #include "PlayerAudio.h"
 #include <vector>
@@ -9,7 +9,7 @@ class tablemodel : public juce::TableListBoxModel {
 
 public:
 	function<void(juce::String)> doubleClick;
-	vector<pair<juce::String, juce::String>> files;// filename , duration
+	vector<pair<juce::String, juce::String>> files;
 	tablemodel() = default;
 	void paintCell(juce::Graphics& g, int rowNumber, int columnId, int width, int height, bool rowIsSelected) override {
 		if (columnId == 1) {
@@ -48,7 +48,6 @@ public:
 };
 
 
-//////////************* class wave Sayed  ***************/////////////////////
 class WaveformDisplay : public juce::Component,
 	private juce::ChangeListener,
 	private juce::Timer
@@ -66,7 +65,8 @@ public:
 	void paint(juce::Graphics& g) override
 	{
 		g.fillAll(juce::Colours::darkgrey);
-		g.setColour(juce::Colours::lightgrey);
+		g.setColour(juce::Colours::blue);
+
 
 		if (thumbnail.getTotalLength() > 0.0)
 		{
@@ -134,7 +134,6 @@ private:
 };
 
 
-///////// end of wave Sayed  ////////////////////////
 
 
 
@@ -164,16 +163,19 @@ private:
 	juce::TextButton clearMarkers{ "Clear Markers" };
 	juce::TextButton removeSelected{ "Remove File" };
 	juce::TextButton clear{ "Clear Table" };
+	juce::TextButton nextButton{ "Next Song" };
+	juce::TextButton previousButton{ "Previous Song" };
+	juce::TextButton mixButton{ "Mix" }; 
 	juce::TextEditor statusBox;
 	juce::Slider volumeSlider;
-	juce::Slider speedSlider; // ****Sayed****
+	juce::Slider speedSlider;
 	juce::TableListBox mytable;
 	juce::Slider positionslider;
 	tablemodel model;
 	std::unique_ptr<juce::FileChooser> fileChooser;
 
 	bool isSliderDragging = false;
-	WaveformDisplay waveformDisplay; // ************Sayed***************
+	WaveformDisplay waveformDisplay;
 
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGui)
@@ -204,5 +206,6 @@ public:
 	void timerCallback() override;
 	void paintOverChildren(juce::Graphics& g) override;
 
+	PlayerAudio& getPlayer1() { return player1; }
 
 };

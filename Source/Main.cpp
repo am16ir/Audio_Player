@@ -1,11 +1,10 @@
 #include <JuceHeader.h>
 #include "PlayerGui.h"
 
-// Our application class
 class SimpleAudioPlayer : public juce::JUCEApplication
 {
 public:
-    const juce::String getApplicationName() override { return "Spotify++ Dual Player"; } // Updated name
+    const juce::String getApplicationName() override { return "Spotify++"; }
     const juce::String getApplicationVersion() override { return "3.2"; }
 
     void initialise(const juce::String&) override
@@ -32,7 +31,7 @@ private:
             auto dualPlayerComponent = std::make_unique<DualPlayerComponent>();
             setContentOwned(dualPlayerComponent.release(), true);
 
-            centreWithSize(1400, 600); // Double width for two players
+            centreWithSize(1400, 700);
             setVisible(true);
         }
 
@@ -41,45 +40,68 @@ private:
             juce::JUCEApplication::getInstance()->systemRequestedQuit();
         }
 
-
-
-        //////****Multiplayer Component *****//////
-
-
     private:
-        // NEW: Component that contains two PlayerGui instances side by side
-        class DualPlayerComponent : public juce::Component
+        class DualPlayerComponent : public juce::Component, public juce::Button::Listener
         {
         public:
             DualPlayerComponent()
             {
-                // Create two PlayerGui instances
                 player1 = std::make_unique<PlayerGui>();
                 player2 = std::make_unique<PlayerGui>();
 
                 addAndMakeVisible(player1.get());
                 addAndMakeVisible(player2.get());
+
+                mixAllButton = std::make_unique<juce::TextButton>("Mix All");
+                mixAllButton->addListener(this);
+                mixAllButton->setColour(juce::TextButton::buttonColourId, juce::Colours::green);
+                addAndMakeVisible(mixAllButton.get());
             }
 
             void resized() override
             {
-                // Split the window horizontally for two players
                 auto area = getLocalBounds();
+
+                auto buttonArea = area.removeFromTop(50);
+                mixAllButton->setBounds(buttonArea.withSizeKeepingCentre(100, 30));
+
                 player1->setBounds(area.removeFromLeft(getWidth() / 2));
-                player2->setBounds(area); // Remaining right half
+                player2->setBounds(area);
+            }
+
+            void buttonClicked(juce::Button* button) override
+            {
+                if (button == mixAllButton.get())
+                {
+                    bool mixState = !isMixing;
+                    isMixing = mixState;
+
+                    if (mixState)
+                    {
+                        player1->getPlayer1().play();
+                        player2->getPlayer1().play();
+                        mixAllButton->setButtonText("Stop Mix");
+                        mixAllButton->setColour(juce::TextButton::buttonColourId, juce::Colours::red);
+                    }
+                    else
+                    {
+                        player1->getPlayer1().pause();
+                        player2->getPlayer1().pause();
+                        mixAllButton->setButtonText("Mix All");
+                        mixAllButton->setColour(juce::TextButton::buttonColourId, juce::Colours::green);
+                    }
+                }
             }
 
         private:
             std::unique_ptr<PlayerGui> player1;
             std::unique_ptr<PlayerGui> player2;
+            std::unique_ptr<juce::TextButton> mixAllButton;
+            bool isMixing = false;
         };
     };
-
-
-    //////****End of Multiplayer Component *****//////
 
     std::unique_ptr<MainWindow> mainWindow;
 };
 
-// This macro starts the app
 START_JUCE_APPLICATION(SimpleAudioPlayer)

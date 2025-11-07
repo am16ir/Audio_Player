@@ -38,10 +38,11 @@ void info::set_filepath(juce::String fp) {
     filepath = fp;
 }
 
-PlayerAudio::PlayerAudio() 
-    : resampleSource(&transportSource, false)  // ***Sayed***
+PlayerAudio::PlayerAudio()
 {
     formatManager.registerBasicFormats();
+    resampleSource.setResamplingRatio(speed);
+
 
 }
 
@@ -51,22 +52,21 @@ PlayerAudio::~PlayerAudio() {
     readerSource.reset();
 }
 
-
 void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    resampleSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
 void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-	transportSource.getNextAudioBlock(bufferToFill);
-    //resampleSource.getNextAudioBlock(bufferToFill);//*** Eidted by Sayed***
+    resampleSource.getNextAudioBlock(bufferToFill);
 }
 
 void PlayerAudio::releaseResources()
 {
+    resampleSource.releaseResources();
     transportSource.releaseResources();
-   // resampleSource.releaseResources();//*** Eidted by Sayed***
 }
 
 info PlayerAudio::LoadFile(const juce::File& file) {
@@ -92,7 +92,6 @@ info PlayerAudio::LoadFile(const juce::File& file) {
                 nullptr,
                 reader->sampleRate);
 
-            resampleSource.setResamplingRatio(currentSpeed); // ***Sayed***
 
             currentFileName = file.getFileName();
             transportSource.start();
@@ -198,7 +197,6 @@ void PlayerAudio::setStartPoint(double pos) {
         if (endPoint <= startPoint || endPoint == 0.0) {
             endPoint = totalLength;
         }
-        if (getPosition() < startPoint) setPosition(startPoint);
     }
 }
 
@@ -206,7 +204,6 @@ void PlayerAudio::setEndPoint(double pos) {
     double totalLength = getLength();
     if (pos > startPoint && pos <= totalLength) {
         endPoint = pos;
-        if (getPosition() >= endPoint) setPosition(startPoint);
     }
     else if (pos <= startPoint) {
         endPoint = totalLength;
@@ -232,19 +229,13 @@ void PlayerAudio::clearMarkers() {
     markers[currentFileName].clear();
 }
 
-
-
-
-
-///// ******** Sayed ******** //////
-void PlayerAudio::setSpeed(float newSpeed)
+void PlayerAudio::setSpeed(double ratio)
 {
-    currentSpeed = juce::jlimit(0.25f, 4.0f, newSpeed);
-    resampleSource.setResamplingRatio(currentSpeed);
+    if (ratio < 0.5) ratio = 0.5;
+    if (ratio > 2.0) ratio = 2.0;
 
-}
+    speed = ratio;
+    resampleSource.setResamplingRatio(speed);
 
-float PlayerAudio::getSpeed() const
-{
-    return currentSpeed;
+    // DBG("PlayerAudio::setSpeed() called. speed = " + juce::String(speed));
 }
