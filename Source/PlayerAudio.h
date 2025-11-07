@@ -52,6 +52,8 @@ private:
 
     juce::ResamplingAudioSource resampleSource{ &transportSource, false }; // ***Sayed***
 
+    float outputGain = 1.0f; // used by mixer
+    double speed = 1.0; // default playback speed (1.0 = normal)
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)
@@ -104,10 +106,15 @@ public:
 
     void clearMarkers();
 
-    void setSpeed(float newSpeed);//***Sayed***
-    float getSpeed() const;//***Sayed***
+    void setSpeed(double ratio);   
+    double getSpeed() const { return speed; }
 
-private:
-    float currentSpeed = 1.0f; //***Sayed***
+
+
+    // *** MIXER ADDED BY SAYED ***
+    void setOutputGain(float gain) { outputGain = gain; }
+    float getOutputGain() const { return outputGain; }
+
+
 
 };

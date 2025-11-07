@@ -164,6 +164,8 @@ private:
 	juce::TextButton clearMarkers{ "Clear Markers" };
 	juce::TextButton removeSelected{ "Remove File" };
 	juce::TextButton clear{ "Clear Table" };
+	juce::TextButton nextButton{ "Next Song" };
+	juce::TextButton previousButton{ "Previous Song" };
 	juce::TextEditor statusBox;
 	juce::Slider volumeSlider;
 	juce::Slider speedSlider; // ****Sayed****
