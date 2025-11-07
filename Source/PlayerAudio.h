@@ -1,6 +1,7 @@
 #pragma once
 #include <JuceHeader.h>
 #include <unordered_map>
+#include <map>
 class info {
     juce::String filename;
     double duration = 0;
@@ -8,7 +9,7 @@ class info {
     juce::String durationMessage;
     juce::String filepath;
     juce::String message;
-    
+
     void durationFormat() {
         int hours = duration / 3600;
         int min = duration / 60;
@@ -30,8 +31,8 @@ class info {
     }
 
 public:
-    info(juce::String fn, double dur, juce::StringPairArray meta,juce::String fp);
-    info() = default ;
+    info(juce::String fn, double dur, juce::StringPairArray meta, juce::String fp);
+    info() = default;
     juce::String get_filename();
     juce::String get_duration();
     juce::String get_metadata();
@@ -49,6 +50,11 @@ private:
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     juce::AudioTransportSource transportSource;
 
+    juce::ResamplingAudioSource resampleSource{ &transportSource, false }; // ***Sayed***
+
+    float outputGain = 1.0f; // used by mixer
+    double speed = 1.0; // default playback speed (1.0 = normal)
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)
 
@@ -56,15 +62,23 @@ public:
     PlayerAudio();
     ~PlayerAudio();
 
+    juce::AudioFormatManager& getFormatManager() { return formatManager; }//////*****Sayed to Wave
+
+
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill);
     void releaseResources();
 
     float prevGain;
     std::unordered_map<juce::String, float>songs;
+    std::unordered_map<juce::String, std::vector<double>> markers;
     juce::String currentFileName;
 
-    
+    double startPoint = 0.0;
+    double endPoint = 0.0;
+    bool isSegmentLooping = false;
+
+
     info LoadFile(const juce::File& file);
     void pause();
     void play();
@@ -81,7 +95,26 @@ public:
     bool isMuted = false;
     void setLooping(bool shouldLoop);
     bool isLooping() const;
- 
+
+    void setStartPoint(double pos);
+    void setEndPoint(double pos);
+    void clearSegmentPoints();
+    void setSegmentLooping(bool shouldLoop);
+    double getStartPoint() const { return startPoint; }
+    double getEndPoint() const { return endPoint; }
+    bool getSegmentLooping() const { return isSegmentLooping; }
+
+    void clearMarkers();
+
+    void setSpeed(double ratio);   
+    double getSpeed() const { return speed; }
+
+
+
+    // *** MIXER ADDED BY SAYED ***
+    void setOutputGain(float gain) { outputGain = gain; }
+    float getOutputGain() const { return outputGain; }
+
 
 
 };

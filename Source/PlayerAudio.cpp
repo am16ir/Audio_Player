@@ -14,9 +14,9 @@ juce::String info::get_metadata() {
 juce::String info::get_path() {
     return filepath;
 }
-info::info(juce::String fn, double dur, juce::StringPairArray meta,juce::String fp) : filename(fn),duration(dur),
-metadata(meta),filepath(fp){
-    
+info::info(juce::String fn, double dur, juce::StringPairArray meta, juce::String fp) : filename(fn), duration(dur),
+metadata(meta), filepath(fp) {
+
     durationFormat();
     metadataFormat();
 }
@@ -27,19 +27,22 @@ void info::set_filename(juce::String f) {
 
 void info::set_duration(double d) {
     duration = d;
-	durationFormat();
+    durationFormat();
 }
 
 void info::set_metadata(juce::StringPairArray m) {
     metadata = m;
-	metadataFormat();
+    metadataFormat();
 }
 void info::set_filepath(juce::String fp) {
     filepath = fp;
 }
 
-PlayerAudio::PlayerAudio() {
-	formatManager.registerBasicFormats();
+PlayerAudio::PlayerAudio()
+{
+    formatManager.registerBasicFormats();
+    resampleSource.setResamplingRatio(speed);///sayed
+
 
 }
 
@@ -49,19 +52,20 @@ PlayerAudio::~PlayerAudio() {
     readerSource.reset();
 }
 
-
 void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    resampleSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
 void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    transportSource.getNextAudioBlock(bufferToFill);
+    resampleSource.getNextAudioBlock(bufferToFill);
 }
 
 void PlayerAudio::releaseResources()
 {
+    resampleSource.releaseResources();
     transportSource.releaseResources();
 }
 
@@ -87,18 +91,24 @@ info PlayerAudio::LoadFile(const juce::File& file) {
                 0,
                 nullptr,
                 reader->sampleRate);
-			currentFileName = file.getFileName();
+
+
+            currentFileName = file.getFileName();
             transportSource.start();
-           
-            myinfo.set_filename( file.getFileName());
-            myinfo.set_metadata ( reader->metadataValues);
-            myinfo.set_duration ( reader->lengthInSamples / reader->sampleRate);
-			myinfo.set_filepath(file.getFullPathName());
-			
-          
+
+            startPoint = 0.0;
+            endPoint = transportSource.getLengthInSeconds();
+            isSegmentLooping = false;
+
+            myinfo.set_filename(file.getFileName());
+            myinfo.set_metadata(reader->metadataValues);
+            myinfo.set_duration(reader->lengthInSamples / reader->sampleRate);
+            myinfo.set_filepath(file.getFullPathName());
+
+
         }
     }
-	return myinfo;
+    return myinfo;
 }
 
 void PlayerAudio::pause() {
@@ -110,11 +120,11 @@ void PlayerAudio::play() {
 }
 
 void PlayerAudio::complete(juce::String name) {
-    if (songs.count(name))
-		transportSource.setPosition(0.0);
-    else 
+    if (songs.count(name) == 0)
+        transportSource.setPosition(0.0);
+    else
         transportSource.setPosition(songs[name]);
-	transportSource.start();
+    transportSource.start();
 }
 
 void PlayerAudio::restart() {
@@ -142,23 +152,23 @@ void PlayerAudio::goEnd() {
 }
 
 void PlayerAudio::setLooping(bool shouldLoop) {
-    
-	if (readerSource != nullptr)
+
+    if (readerSource != nullptr)
         readerSource->setLooping(shouldLoop);
-   
+
 }
 
 
 bool PlayerAudio::isLooping() const {
     if (readerSource == nullptr)
-		return false;
+        return false;
 
     return readerSource->isLooping();
-   
+
 }
 
 void PlayerAudio::forward() {
-	double pos = getPosition();
+    double pos = getPosition();
     if (pos + 10 <= getLength())
         setPosition(pos + 10);
     else
@@ -177,4 +187,55 @@ void PlayerAudio::mute() {
         transportSource.setGain(0.0);
     else
         transportSource.setGain(prevGain);
+}
+
+
+void PlayerAudio::setStartPoint(double pos) {
+    double totalLength = getLength();
+    if (pos >= 0.0 && pos < totalLength) {
+        startPoint = pos;
+        if (endPoint <= startPoint || endPoint == 0.0) {
+            endPoint = totalLength;
+        }
+    }
+}
+
+void PlayerAudio::setEndPoint(double pos) {
+    double totalLength = getLength();
+    if (pos > startPoint && pos <= totalLength) {
+        endPoint = pos;
+    }
+    else if (pos <= startPoint) {
+        endPoint = totalLength;
+    }
+}
+
+void PlayerAudio::clearSegmentPoints() {
+    startPoint = 0.0;
+    endPoint = getLength();
+    isSegmentLooping = false;
+}
+
+void PlayerAudio::setSegmentLooping(bool shouldLoop) {
+    isSegmentLooping = shouldLoop;
+    if (shouldLoop && getLength() > 0.0) {
+        if (getPosition() < startPoint || getPosition() >= endPoint) {
+            setPosition(startPoint);
+        }
+    }
+}
+
+void PlayerAudio::clearMarkers() {
+    markers[currentFileName].clear();
+}
+
+void PlayerAudio::setSpeed(double ratio)
+{
+    if (ratio < 0.5) ratio = 0.5;
+    if (ratio > 2.0) ratio = 2.0;
+
+    speed = ratio;
+    resampleSource.setResamplingRatio(speed);
+
+   // DBG("PlayerAudio::setSpeed() called. speed = " + juce::String(speed));
 }
