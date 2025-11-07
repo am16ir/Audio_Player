@@ -49,6 +49,8 @@ private:
                 player1 = std::make_unique<PlayerGui>();
                 player2 = std::make_unique<PlayerGui>();
 
+
+                
                 addAndMakeVisible(player1.get());
                 addAndMakeVisible(player2.get());
 
@@ -92,6 +94,17 @@ private:
                     }
                 }
             }
+
+            /*void paint(juce::Graphics& g) override
+            {
+                g.fillAll(juce::Colours::lightgreen);
+
+                int spacing = 20;
+                int playerWidth = (getWidth() - spacing) / 2;
+                auto spacingArea = juce::Rectangle<int>(playerWidth, 0, spacing, getHeight());
+                g.setColour(juce::Colours::orangered);
+                g.fillRect(spacingArea);
+            }*/
 
         private:
             std::unique_ptr<PlayerGui> player1;
