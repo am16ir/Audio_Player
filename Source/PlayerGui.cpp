@@ -4,12 +4,12 @@ using namespace std;
 
 
 PlayerGui::PlayerGui()
-    : waveformDisplay(player1, player1.getFormatManager()) // *****Sayed******
+    : waveformDisplay(player1, player1.getFormatManager())
 
 {
     for (auto* btn : { &loadButton, &restartButton , &pauseButton ,&goEndButton ,&playButton ,
         &forward ,&backward,&loopButton,&mute,&startingpoint,&endingpoint,&Deletepoints,&looponpoints,
-        &markerButton,&clearMarkers,&clear,&removeSelected,&nextButton,&previousButton })
+        &markerButton,&clearMarkers,&clear,&removeSelected,&nextButton,&previousButton,& mixButton })
     {
         btn->addListener(this);
         addAndMakeVisible(btn);
@@ -18,6 +18,8 @@ PlayerGui::PlayerGui()
     }
     mute.setClickingTogglesState(true);
     looponpoints.setClickingTogglesState(true);
+    mixButton.setClickingTogglesState(true); 
+
 
     // Volume slider
     volumeSlider.setRange(0.0, 1.0, 0.01);
@@ -34,9 +36,9 @@ PlayerGui::PlayerGui()
 
 
 
-    addAndMakeVisible(waveformDisplay);	// ******Sayed******
+    addAndMakeVisible(waveformDisplay);
 
-    setSize(1200, 850);//***Editing by sayed
+    setSize(1200, 850);
     setAudioChannels(0, 2);
 
     statusBox.setMultiLine(true);
@@ -97,17 +99,18 @@ void PlayerGui::resized()
     Deletepoints.setBounds(610, 70, 80, 40);
     markerButton.setBounds(110, 120, 80, 40);
     clearMarkers.setBounds(210, 120, 80, 40);
+    mixButton.setBounds(310, 120, 80, 40); 
 
 
 
-    waveformDisplay.setBounds(10, 230, getWidth() - 40, 80);// ****Sayed****
+    waveformDisplay.setBounds(10, 230, getWidth() - 40, 80);
 
     volumeSlider.setBounds(10, 320, getWidth() - 40, 30);
     positionslider.setBounds(10, 360, getWidth() - 40, 30);
-    speedSlider.setBounds(10, 400, getWidth() - 40, 30); // ****Sayed****
+    speedSlider.setBounds(10, 400, getWidth() - 40, 30);
 
-    statusBox.setBounds(10, 490, 350, 150);
-    mytable.setBounds(380, 490, 360, 150);
+    statusBox.setBounds(10, 490, 320, 150);
+    mytable.setBounds(350, 490, 340, 150);
     clear.setBounds(400, 430, 80, 40);
     removeSelected.setBounds(500, 430, 80, 40);
 
@@ -120,8 +123,64 @@ void PlayerGui::resized()
 
 void PlayerGui::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::lightblue);
-    g.setColour(juce::Colours::white);
+    g.fillAll(juce::Colour(0xff1e1e1e));
+
+
+    g.setColour(juce::Colour(0xff2a2a2a));
+    g.fillRect(0, 0, getWidth(), 170); 
+    g.setColour(juce::Colour(0xff1f1f1f));
+    g.fillRect(0, 170, getWidth(), 100); 
+
+
+    for (auto* btn : { &backward, &playButton, &pauseButton, &forward,&markerButton, &clearMarkers,  &restartButton, &goEndButton })
+    {
+        btn->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff007acc));
+        btn->setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+        btn->setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xff005a9e));
+    }
+
+    for (auto* btn : { &loopButton, &mute })
+    {
+        btn->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff68217a));
+        btn->setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+        btn->setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xff4c165c));
+    }
+
+    for (auto* btn : { &startingpoint, &endingpoint, &Deletepoints, &looponpoints })
+    {
+        btn->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff107c10));
+        btn->setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+        btn->setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xff0c5c0c));
+    }
+
+    for (auto* btn : { &previousButton, &nextButton })
+    {
+        btn->setColour(juce::TextButton::buttonColourId, juce::Colour(0xffca5010));
+        btn->setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+        btn->setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xff9c3e0c));
+    }
+
+    loadButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xffd83b01));
+    loadButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+
+    mixButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff0078d7));
+    mixButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    mixButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xffca5010));
+
+    for (auto* btn : { &clear, &removeSelected })
+    {
+        btn->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff505050));
+        btn->setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    }
+
+    for (auto* slider : { &volumeSlider, &speedSlider, &positionslider })
+    {
+        slider->setColour(juce::Slider::trackColourId, juce::Colour(0xff007acc));
+        slider->setColour(juce::Slider::thumbColourId, juce::Colours::white);
+        slider->setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
+        slider->setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0xff404040));
+        slider->setColour(juce::Slider::textBoxOutlineColourId, juce::Colour(0xff606060));
+    }
 }
 
 void PlayerGui::buttonClicked(juce::Button* button)
@@ -151,7 +210,6 @@ void PlayerGui::buttonClicked(juce::Button* button)
                     statusBoxMessage(fileinfo.get_duration());
                     statusBoxMessage(fileinfo.get_metadata());
 
-                    //  waveform Sayed
                     waveformDisplay.setFile(file);
 
                     model.files.push_back({ fileinfo.get_path(),fileinfo.get_duration() });
@@ -216,12 +274,12 @@ void PlayerGui::buttonClicked(juce::Button* button)
 
     if (button == &startingpoint) {
         player1.setStartPoint(player1.getPosition());
-        statusBoxMessage("Point A set to: " + juce::String(player1.getStartPoint(),1) + "s");
+        statusBoxMessage("Point A set to: " + juce::String(player1.getStartPoint(), 1) + "s");
     }
 
     if (button == &endingpoint) {
         player1.setEndPoint(player1.getPosition());
-        statusBoxMessage("Point B set to: " + juce::String(player1.getEndPoint(),1) + "s");
+        statusBoxMessage("Point B set to: " + juce::String(player1.getEndPoint(), 1) + "s");
     }
 
     if (button == &Deletepoints) {
@@ -327,6 +385,28 @@ void PlayerGui::buttonClicked(juce::Button* button)
             looponpoints.setToggleState(false, juce::dontSendNotification);
             looponpoints.setColour(juce::TextButton::buttonColourId, juce::Colours::darkgrey);
             player1.clearSegmentPoints();
+        }
+    }
+
+    if (button == &mixButton)
+    {
+        bool mixState = mixButton.getToggleState();
+
+        if (mixState)
+        {
+            player1.play();
+            player2.play();
+            mixButton.setButtonText("Stop Mix");
+            mixButton.setColour(juce::TextButton::buttonColourId, juce::Colours::darkblue);
+            statusBoxMessage("Mix STARTED - Both players are playing");
+        }
+        else
+        {
+            player1.pause();
+            player2.pause();
+            mixButton.setButtonText("Mix");
+            mixButton.setColour(juce::TextButton::buttonColourId, juce::Colours::red);
+            statusBoxMessage("Mix STOPPED - Both players are paused");
         }
     }
 }

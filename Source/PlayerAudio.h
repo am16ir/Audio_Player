@@ -50,10 +50,10 @@ private:
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     juce::AudioTransportSource transportSource;
 
-    juce::ResamplingAudioSource resampleSource{ &transportSource, false }; // ***Sayed***
+    juce::ResamplingAudioSource resampleSource{ &transportSource, false }; 
 
-    float outputGain = 1.0f; // used by mixer
-    double speed = 1.0; // default playback speed (1.0 = normal)
+    float outputGain = 1.0f;
+    double speed = 1.0; 
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)
@@ -62,7 +62,7 @@ public:
     PlayerAudio();
     ~PlayerAudio();
 
-    juce::AudioFormatManager& getFormatManager() { return formatManager; }//////*****Sayed to Wave
+    juce::AudioFormatManager& getFormatManager() { return formatManager; }
 
 
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
@@ -106,12 +106,11 @@ public:
 
     void clearMarkers();
 
-    void setSpeed(double ratio);   
+    void setSpeed(double ratio);
     double getSpeed() const { return speed; }
 
 
 
-    // *** MIXER ADDED BY SAYED ***
     void setOutputGain(float gain) { outputGain = gain; }
     float getOutputGain() const { return outputGain; }
 

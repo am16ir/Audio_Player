@@ -41,6 +41,9 @@ void info::set_filepath(juce::String fp) {
 PlayerAudio::PlayerAudio()
 {
     formatManager.registerBasicFormats();
+
+    resampleSource.setResamplingRatio(speed);
+
     resampleSource.setResamplingRatio(speed);///sayed
 
 
@@ -237,5 +240,5 @@ void PlayerAudio::setSpeed(double ratio)
     speed = ratio;
     resampleSource.setResamplingRatio(speed);
 
-   // DBG("PlayerAudio::setSpeed() called. speed = " + juce::String(speed));
+
 }
